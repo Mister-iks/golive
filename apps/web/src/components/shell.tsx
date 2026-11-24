@@ -3,19 +3,23 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { BookOpenText, FolderKanban, Laptop, Moon, Sun } from "lucide-react";
+import { BookOpenText, FolderKanban, Laptop, Moon, Sun, Users } from "lucide-react";
 import { ENGINE_VERSION } from "@golive/engine";
 import { Wordmark } from "./brand";
+import { OrgSwitcher, Toast, UserMenu } from "./account";
 import { useTheme, type ThemePref } from "./providers";
+import { useMe } from "@/lib/use-report";
 import { cx, Tip } from "./ui";
 
 const NAV = [
   { href: "/", label: "Projets", icon: FolderKanban, match: (p: string) => p === "/" || p.startsWith("/p/") },
+  { href: "/settings", label: "Organisation", icon: Users, match: (p: string) => p.startsWith("/settings") },
   { href: "/rules", label: "Catalogue des règles", icon: BookOpenText, match: (p: string) => p.startsWith("/rules") },
 ];
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
+  const { me } = useMe();
   return (
     <div className="flex h-dvh overflow-hidden">
       <aside className="no-print flex w-[216px] shrink-0 flex-col border-r border-line bg-surface-2 max-md:hidden">
@@ -25,13 +29,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </Link>
         </div>
         <div className="px-3 pb-2 pt-1">
-          <div className="flex items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5">
-            <span className="grid size-5 place-items-center rounded bg-fg font-mono text-[10px] font-semibold text-bg">L</span>
-            <div className="min-w-0 leading-tight">
-              <p className="truncate text-xs font-medium">Espace local</p>
-              <p className="text-[10.5px] text-fg-3">Community · ce navigateur</p>
-            </div>
-          </div>
+          <OrgSwitcher />
         </div>
         <nav className="flex flex-col gap-px px-2 py-2">
           {NAV.map(({ href, label, icon: Icon, match }) => {
@@ -52,6 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="mt-auto flex flex-col gap-3 border-t border-line p-3">
+          <UserMenu />
           <ThemeSwitch />
           <div className="flex items-center justify-between px-1 text-[11px] text-fg-3">
             <span>
@@ -65,7 +64,8 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </aside>
-      <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">{children}</main>
+      <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">{me ? children : null}</main>
+      <Toast />
     </div>
   );
 }

@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronRight, ExternalLink, Radar, Scale, ShieldCheck, Undo2 } from "lucide-react";
-import { CATEGORY_LABELS, COMMUNITY_PACKS, type Report, type RuleResult } from "@golive/engine";
-import type { Category, Status, WebObservation } from "@golive/packs-sdk";
+import { ChevronRight, ExternalLink, Scale, ShieldCheck, Undo2 } from "lucide-react";
+import { CATEGORY_LABELS, COMMUNITY_PACKS, type RuleResult } from "@golive/engine";
+import type { Category, Status } from "@golive/packs-sdk";
 import type { Spec } from "@golive/spec";
 import { useStore } from "@/lib/store";
-import { ago, longDate } from "@/lib/format";
+import { longDate } from "@/lib/format";
 import { today } from "@/lib/use-report";
-import { Button, cx, Dialog, Empty, Field, Input, Select, SeverityTag, StatusIcon, STATUS_LABEL, Textarea, Tip } from "./ui";
+import { Button, cx, Dialog, Empty, Field, Input, SeverityTag, StatusIcon, STATUS_LABEL, Textarea } from "./ui";
+import { AuditPanel } from "./audit-panel";
 import type { WorkspaceProps } from "./workspace";
 
 type Filter = "open" | "blocking" | "evidence" | "pass" | "not-run" | "all";
@@ -52,7 +53,7 @@ export function Checks({ project, report }: WorkspaceProps) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <Coverage project={project} report={report} />
+      <AuditPanel project={project} report={report} />
       <div className="flex min-h-0 flex-1">
         <aside className="w-[220px] shrink-0 overflow-y-auto border-r border-line bg-surface px-2 py-3 max-md:hidden">
           <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">Statut</p>
@@ -103,104 +104,6 @@ function FilterItem({ active, onClick, count, countSuffix, children }: { active:
         </span>
       )}
     </button>
-  );
-}
-
-/* ----------------------------------------------------------- Coverage */
-
-function Coverage({ project, report }: { project: WorkspaceProps["project"]; report: Report }) {
-  const setWeb = useStore((s) => s.setWeb);
-  const targets = project.spec.targets;
-  const [url, setUrl] = useState(targets.prod ?? targets.preprod ?? "");
-  const [env, setEnv] = useState<"prod" | "preprod">(targets.prod ? "prod" : targets.preprod ? "preprod" : "prod");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-  const web = project.web;
-
-  const run = async () => {
-    setBusy(true);
-    setError(undefined);
-    try {
-      const res = await fetch("/api/probe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, env }) });
-      const data = (await res.json()) as WebObservation & { error?: string };
-      if (!res.ok) throw new Error(data.error ?? `Erreur ${res.status}`);
-      setWeb(project.id, data);
-      if (!data.ok) setError(data.error);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const layers: { n: number; label: string; state: "on" | "off" | "cli" | "premium"; hint: string }[] = [
-    { n: 1, label: "Architecture déclarée", state: "on", hint: "Évaluée en continu depuis le Studio et la fiche." },
-    { n: 2, label: "Code et infrastructure", state: "cli", hint: "Secrets, dépendances vulnérables et conteneurs : lancez golive check --repo . dans votre CI." },
-    { n: 3, label: "Site en ligne", state: report.coverage.layers.includes(3) ? "on" : "off", hint: "Audit passif de l'URL déclarée." },
-    { n: 4, label: "Analyse IA", state: "premium", hint: "Disponible dans l'édition Premium." },
-  ];
-
-  return (
-    <div className="shrink-0 border-b border-line bg-surface">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3">
-        <ol className="flex items-center gap-1" aria-label="Couches de vérification">
-          {layers.map((l) => (
-            <Tip key={l.n} label={l.hint} side="bottom">
-              <li
-                className={cx(
-                  "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs",
-                  l.state === "on" && "border-go-line bg-go-soft text-go",
-                  l.state === "off" && "border-line-strong text-fg-2",
-                  (l.state === "cli" || l.state === "premium") && "border-dashed border-line text-fg-4",
-                )}
-              >
-                <span className="font-mono text-[10.5px]">{l.n}</span>
-                <span className="max-lg:hidden">{l.label}</span>
-                {l.state === "premium" && <span className="font-mono text-[9.5px] uppercase">Pro</span>}
-                {l.state === "cli" && <span className="font-mono text-[9.5px] uppercase">CLI</span>}
-              </li>
-            </Tip>
-          ))}
-        </ol>
-        <form
-          className="ml-auto flex min-w-[380px] flex-1 items-center gap-2 lg:max-w-[560px]"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (url) void run();
-          }}
-        >
-          <div className="w-[124px] shrink-0">
-            <Select value={env} onChange={(e) => setEnv(e.target.value as "prod" | "preprod")} aria-label="Environnement">
-              <option value="prod">Production</option>
-              <option value="preprod">Pré-prod</option>
-            </Select>
-          </div>
-          <Input mono type="url" required placeholder="https://exemple.sn" value={url} onChange={(e) => setUrl(e.target.value)} aria-label="URL à auditer" />
-          <Button type="submit" variant="primary" icon={<Radar size={14} className={busy ? "animate-spin" : ""} />} disabled={busy || !url}>
-            {busy ? "Audit…" : "Auditer"}
-          </Button>
-        </form>
-      </div>
-      {(web || error) && (
-        <div className={cx("flex items-center justify-between gap-4 border-t px-5 py-2 text-xs", error ? "border-red-line bg-red-soft text-red" : "border-line text-fg-3")}>
-          {error ? (
-            <span>{error}</span>
-          ) : (
-            web && (
-              <span className="truncate">
-                Dernier audit <span className="font-mono text-fg-2">{web.finalUrl}</span> · {web.env === "prod" ? "production" : "pré-production"} · {ago(web.fetchedAt)} · HTTP {web.status} ·{" "}
-                {web.timing.totalMs} ms
-              </span>
-            )
-          )}
-          {web && (
-            <button onClick={() => setWeb(project.id, undefined)} className="shrink-0 hover:text-fg">
-              Effacer l'audit
-            </button>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 

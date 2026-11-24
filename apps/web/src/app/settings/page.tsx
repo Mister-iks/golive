@@ -1,0 +1,558 @@
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { Check, Copy, Globe, Mail, RotateCw, Trash2, UserPlus } from "lucide-react";
+import { ORG_ROLE_LABEL } from "@/components/account";
+import { PageHeader, Shell } from "@/components/shell";
+import { PROJECT_ROLES } from "@/components/share";
+import { Button, cx, Dialog, Empty, Field, Input, Select, Tip } from "@/components/ui";
+import { api } from "@/lib/api";
+import { ago } from "@/lib/format";
+import { useStore, type OrgRole, type ProjectRole } from "@/lib/store";
+import { useMe } from "@/lib/use-report";
+
+const TABS = [
+  { id: "members", label: "Membres" },
+  { id: "domains", label: "Domaines" },
+  { id: "activity", label: "Journal" },
+  { id: "org", label: "Organisation" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
+export default function SettingsPage() {
+  return (
+    <Shell>
+      <Suspense>
+        <Settings />
+      </Suspense>
+    </Shell>
+  );
+}
+
+function Settings() {
+  const { org } = useMe();
+  const params = useSearchParams();
+  const router = useRouter();
+  const tab = (TABS.find((t) => t.id === params.get("tab"))?.id ?? "members") as Tab;
+  const admin = org?.role === "owner" || org?.role === "admin";
+  if (!org) return null;
+
+  return (
+    <>
+      <PageHeader title={org.name} />
+      <nav className="flex h-10 shrink-0 items-end gap-1 border-b border-line bg-surface px-3" role="tablist">
+        {TABS.filter((t) => admin || t.id === "members" || t.id === "domains").map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => router.replace(`/settings?tab=${t.id}`, { scroll: false })}
+            className={cx("relative flex h-9 items-center px-2.5 text-[13px] transition-colors", tab === t.id ? "text-fg" : "text-fg-3 hover:text-fg")}
+          >
+            {t.label}
+            {tab === t.id && <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-fg" />}
+          </button>
+        ))}
+      </nav>
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto max-w-[920px] px-6 py-6">
+          {tab === "members" && <Members orgId={org.id} admin={admin} />}
+          {tab === "domains" && <Domains orgId={org.id} initialHost={params.get("host") ?? ""} />}
+          {tab === "activity" && admin && <Activity orgId={org.id} />}
+          {tab === "org" && admin && <OrgSettings orgId={org.id} name={org.name} />}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Card({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="mb-6 overflow-hidden rounded-lg border border-line bg-surface">
+      <header className="flex min-h-11 items-center justify-between gap-3 border-b border-line px-4 py-2">
+        <h2 className="text-[13px] font-medium">{title}</h2>
+        {aside}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+const notify = (e: unknown) => useStore.getState().notify((e as Error).message);
+
+/* ---------------------------------------------------------------- members */
+
+interface MembersData {
+  role: OrgRole;
+  members: { userId: string; name: string; email: string; role: OrgRole; twoFactor: boolean | null; since: string }[];
+  invitations: { id: string; email: string; orgRole: OrgRole; projects: { projectId: string; role: ProjectRole }[]; expiresAt: string; expired: boolean; createdAt: string }[];
+}
+
+function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
+  const { me } = useMe();
+  const [data, setData] = useState<MembersData>();
+  const [inviting, setInviting] = useState(false);
+  const [link, setLink] = useState<{ url: string; email: string; sent: boolean }>();
+  const load = () => api<MembersData>(`/orgs/${orgId}/members`).then(setData).catch(notify);
+  useEffect(() => {
+    void load();
+  }, [orgId]);
+
+  const act = (p: Promise<unknown>) => p.then(load).catch(notify);
+
+  return (
+    <>
+      <Card
+        title={`Membres${data ? ` · ${data.members.length}` : ""}`}
+        aside={
+          admin && (
+            <Button variant="primary" size="sm" icon={<UserPlus size={13} />} onClick={() => setInviting(true)}>
+              Inviter
+            </Button>
+          )
+        }
+      >
+        <ul className="divide-y divide-line">
+          {data?.members.map((m) => (
+            <li key={m.userId} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="min-w-0 flex-1 leading-tight">
+                <p className="truncate text-[13px] font-medium">
+                  {m.name} {m.userId === me?.user.id && <span className="font-normal text-fg-3">(vous)</span>}
+                </p>
+                <p className="truncate text-xs text-fg-3">{m.email}</p>
+              </div>
+              {(m.role === "owner" || m.role === "admin") && !m.twoFactor && (
+                <Tip label="La double authentification sera exigée pour les administrateurs.">
+                  <span className="rounded-full border border-amber-line bg-amber-soft px-2 py-0.5 text-[10.5px] text-amber">Sans 2FA</span>
+                </Tip>
+              )}
+              <div className="w-[160px]">
+                <Select
+                  value={m.role}
+                  disabled={!admin || m.userId === me?.user.id}
+                  onChange={(e) => act(api(`/orgs/${orgId}/members/${m.userId}`, { method: "PATCH", body: { role: e.target.value } }))}
+                  aria-label={`Rôle de ${m.name}`}
+                >
+                  {(["owner", "admin", "member", "guest"] as const).map((r) => (
+                    <option key={r} value={r}>
+                      {ORG_ROLE_LABEL[r]}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              {(admin || m.userId === me?.user.id) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Trash2 size={14} />}
+                  aria-label={m.userId === me?.user.id ? "Quitter l'organisation" : `Retirer ${m.name}`}
+                  onClick={() => {
+                    if (confirm(m.userId === me?.user.id ? "Quitter cette organisation ?" : `Retirer ${m.name} de l'organisation ? Son accès est coupé immédiatement.`))
+                      void act(api(`/orgs/${orgId}/members/${m.userId}`, { method: "DELETE" })).then(() => m.userId === me?.user.id && location.assign("/"));
+                  }}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+        <p className="border-t border-line bg-surface-2 px-4 py-2.5 text-xs text-fg-3">
+          Propriétaires et administrateurs gèrent tous les projets. Les membres les consultent. Les invités ne voient que les projets partagés avec eux.
+        </p>
+      </Card>
+
+      {admin && !!data?.invitations.length && (
+        <Card title="Invitations en attente">
+          <ul className="divide-y divide-line">
+            {data.invitations.map((i) => (
+              <li key={i.id} className="flex items-center gap-3 px-4 py-2.5">
+                <Mail size={14} className="shrink-0 text-fg-3" />
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-mono text-[12.5px]">{i.email}</p>
+                  <p className="text-xs text-fg-3">
+                    {ORG_ROLE_LABEL[i.orgRole]}
+                    {i.projects.length ? ` · ${i.projects.length} projet${i.projects.length > 1 ? "s" : ""}` : ""} ·{" "}
+                    {i.expired ? <span className="text-red">expirée</span> : `expire ${ago(i.expiresAt)}`}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  icon={<RotateCw size={13} />}
+                  onClick={() =>
+                    api<{ link: string; emailSent: boolean }>(`/orgs/${orgId}/invitations/${i.id}`, { method: "POST" })
+                      .then((r) => {
+                        setLink({ url: r.link, email: i.email, sent: r.emailSent });
+                        return load();
+                      })
+                      .catch(notify)
+                  }
+                >
+                  Renvoyer
+                </Button>
+                <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} aria-label="Annuler l'invitation" onClick={() => act(api(`/orgs/${orgId}/invitations/${i.id}`, { method: "DELETE" }))} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <InviteDialog
+        orgId={orgId}
+        open={inviting}
+        onOpenChange={setInviting}
+        onDone={(r) => {
+          setLink(r);
+          void load();
+        }}
+      />
+      <Dialog open={!!link} onOpenChange={() => setLink(undefined)} title="Invitation créée" description={link?.sent ? `Un e-mail a été envoyé à ${link.email}.` : `Aucun serveur d'e-mail configuré : transmettez ce lien à ${link?.email}.`}>
+        <div className="flex flex-col gap-3 p-5">
+          <CopyField value={link?.url ?? ""} />
+          <p className="text-xs text-fg-3">Lien personnel, valable 7 jours, utilisable une seule fois avec cette adresse e-mail.</p>
+        </div>
+      </Dialog>
+    </>
+  );
+}
+
+function InviteDialog({ orgId, open, onOpenChange, onDone }: { orgId: string; open: boolean; onOpenChange: (o: boolean) => void; onDone: (r: { url: string; email: string; sent: boolean }) => void }) {
+  const list = useStore((s) => s.list);
+  const [email, setEmail] = useState("");
+  const [orgRole, setOrgRole] = useState<"admin" | "member" | "guest">("guest");
+  const [projects, setProjects] = useState<Record<string, ProjectRole>>({});
+  const [until, setUntil] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open && !list) void useStore.getState().loadList();
+  }, [open]);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ link: string; emailSent: boolean }>(`/orgs/${orgId}/invitations`, {
+        body: { email, orgRole, projects: Object.entries(projects).map(([projectId, role]) => ({ projectId, role })), accessExpiresAt: until || null },
+      });
+      onOpenChange(false);
+      onDone({ url: r.link, email, sent: r.emailSent });
+      setEmail("");
+      setProjects({});
+      setUntil("");
+    } catch (e) {
+      notify(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange} title="Inviter quelqu'un" description="Un collègue, un prestataire ou un client. Vous choisissez exactement ce qu'il voit." width={600}>
+      <form
+        className="flex flex-col gap-4 p-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        <div className="grid grid-cols-[1fr_180px] gap-3">
+          <Field label="E-mail">
+            <Input type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@entreprise.sn" />
+          </Field>
+          <Field label="Rôle dans l'organisation">
+            <Select value={orgRole} onChange={(e) => setOrgRole(e.target.value as typeof orgRole)}>
+              <option value="guest">Invité</option>
+              <option value="member">Membre</option>
+              <option value="admin">Administrateur</option>
+            </Select>
+          </Field>
+        </div>
+        <Field label="Projets partagés" hint={orgRole === "guest" ? "Un invité ne voit que ces projets." : "Facultatif : un rôle précis sur certains projets."}>
+          <div className="max-h-56 overflow-auto rounded-md border border-line">
+            {!list?.length ? (
+              <p className="px-3 py-3 text-xs text-fg-3">Aucun projet dans cette organisation.</p>
+            ) : (
+              list.map((p) => (
+                <label key={p.id} className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-0">
+                  <input
+                    type="checkbox"
+                    checked={!!projects[p.id]}
+                    onChange={(e) =>
+                      setProjects((cur) => {
+                        const next = { ...cur };
+                        if (e.target.checked) next[p.id] = "contributeur";
+                        else delete next[p.id];
+                        return next;
+                      })
+                    }
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[13px]">{p.spec.project.name}</span>
+                  <div className="w-[150px]">
+                    <Select value={projects[p.id] ?? "contributeur"} disabled={!projects[p.id]} onChange={(e) => setProjects((cur) => ({ ...cur, [p.id]: e.target.value as ProjectRole }))}>
+                      {PROJECT_ROLES.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </label>
+              ))
+            )}
+          </div>
+        </Field>
+        <Field label="Fin d'accès aux projets" hint="Facultatif : l'accès aux projets cochés s'arrête à cette date.">
+          <Input type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setUntil(e.target.value)} />
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button type="button" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button type="submit" variant="primary" disabled={busy || !email || (orgRole === "guest" && !Object.keys(projects).length)}>
+            Envoyer l'invitation
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function CopyField({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex gap-2">
+      <Input mono readOnly value={value} onFocus={(e) => e.target.select()} />
+      <Button
+        icon={copied ? <Check size={14} /> : <Copy size={14} />}
+        onClick={async () => {
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+      >
+        {copied ? "Copié" : "Copier"}
+      </Button>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- domains */
+
+interface Domain {
+  id: string;
+  hostname: string;
+  token: string;
+  method: "dns" | "file" | null;
+  verifiedAt: string | null;
+  checkedAt: string | null;
+}
+
+function Domains({ orgId, initialHost }: { orgId: string; initialHost: string }) {
+  const { me } = useMe();
+  const [data, setData] = useState<{ dnsPrefix: string; file: string; domains: Domain[] }>();
+  const [host, setHost] = useState(initialHost);
+  const [busy, setBusy] = useState<string>();
+  const [result, setResult] = useState<Record<string, string>>({});
+  const load = () => api<typeof data>(`/orgs/${orgId}/domains`).then(setData).catch(notify);
+  useEffect(() => {
+    void load();
+  }, [orgId]);
+
+  const add = async () => {
+    setBusy("add");
+    try {
+      await api(`/orgs/${orgId}/domains`, { body: { hostname: host } });
+      setHost("");
+      await load();
+    } catch (e) {
+      notify(e);
+    } finally {
+      setBusy(undefined);
+    }
+  };
+  const verify = async (d: Domain) => {
+    setBusy(d.id);
+    try {
+      const r = await api<{ ok: boolean; detail: string }>(`/orgs/${orgId}/domains/${d.id}`, { method: "POST" });
+      setResult((cur) => ({ ...cur, [d.id]: r.detail }));
+      await load();
+    } catch (e) {
+      notify(e);
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  return (
+    <>
+      {me && !me.settings.domainVerification && (
+        <p className="mb-4 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber">
+          Vérification désactivée sur cette instance (GOLIVE_SKIP_DOMAIN_VERIFICATION). Les audits complets sont autorisés sur tous les domaines.
+        </p>
+      )}
+      <Card title="Domaines vérifiés">
+        <p className="px-4 pt-3 text-[13px] leading-relaxed text-fg-2">
+          Avant de parcourir un site en profondeur, PcyBox GoLive vérifie que votre organisation le contrôle. Un domaine vérifié couvre aussi ses sous-domaines : vérifier{" "}
+          <span className="font-mono">exemple.sn</span> autorise <span className="font-mono">www.exemple.sn</span> et <span className="font-mono">preprod.exemple.sn</span>. L'audit rapide de la page
+          d'accueil n'en a pas besoin.
+        </p>
+        <form
+          className="flex gap-2 px-4 py-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void add();
+          }}
+        >
+          <Input mono required value={host} onChange={(e) => setHost(e.target.value)} placeholder="exemple.sn" aria-label="Domaine" />
+          <Button type="submit" variant="primary" icon={<Globe size={14} />} disabled={busy === "add" || !host}>
+            Ajouter
+          </Button>
+        </form>
+        {!data?.domains.length ? (
+          <div className="border-t border-line">
+            <Empty title="Aucun domaine">Ajoutez le domaine de votre site pour débloquer l'audit complet.</Empty>
+          </div>
+        ) : (
+          <ul className="divide-y divide-line border-t border-line">
+            {data.domains.map((d) => (
+              <li key={d.id} className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[13px] font-medium">{d.hostname}</span>
+                  {d.verifiedAt ? (
+                    <span className="rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go">Vérifié par {d.method === "dns" ? "DNS" : "fichier"}</span>
+                  ) : (
+                    <span className="rounded-full border border-line-strong px-2 py-0.5 text-[11px] text-fg-3">En attente</span>
+                  )}
+                  <span className="flex-1" />
+                  {!d.verifiedAt && (
+                    <Button size="sm" variant="primary" disabled={busy === d.id} onClick={() => void verify(d)}>
+                      {busy === d.id ? "Vérification…" : "Vérifier"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={<Trash2 size={14} />}
+                    aria-label={`Retirer ${d.hostname}`}
+                    onClick={() => api(`/orgs/${orgId}/domains/${d.id}`, { method: "DELETE" }).then(load).catch(notify)}
+                  />
+                </div>
+                {!d.verifiedAt && data && (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Proof title="Option 1 · Enregistrement DNS" lines={[["Type", "TXT"], ["Nom", `${data.dnsPrefix}.${d.hostname}`], ["Valeur", d.token]]} />
+                    <Proof title="Option 2 · Fichier sur le site" lines={[["URL", `https://${d.hostname}${data.file}`], ["Contenu", d.token]]} />
+                  </div>
+                )}
+                {result[d.id] && !d.verifiedAt && <p className="mt-2 text-xs text-red">{result[d.id]}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}
+
+function Proof({ title, lines }: { title: string; lines: [string, string][] }) {
+  return (
+    <div className="rounded-md border border-line bg-surface-2 p-3">
+      <p className="mb-2 text-xs font-medium">{title}</p>
+      <dl className="grid grid-cols-[64px_1fr] gap-x-2 gap-y-1 text-xs">
+        {lines.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-fg-3">{k}</dt>
+            <dd className="flex min-w-0 items-center gap-1">
+              <span className="truncate font-mono text-fg">{v}</span>
+              <button onClick={() => navigator.clipboard.writeText(v)} className="shrink-0 text-fg-4 hover:text-fg" aria-label={`Copier ${k}`}>
+                <Copy size={11} />
+              </button>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- activity */
+
+const ACTION_LABEL: Record<string, string> = {
+  "auth.login": "Connexion",
+  "org.created": "Organisation créée",
+  "org.renamed": "Organisation renommée",
+  "member.role": "Rôle modifié",
+  "member.removed": "Membre retiré",
+  "member.left": "A quitté l'organisation",
+  "invitation.sent": "Invitation envoyée",
+  "invitation.revoked": "Invitation annulée",
+  "invitation.accepted": "Invitation acceptée",
+  "project.created": "Projet créé",
+  "project.deleted": "Projet supprimé",
+  "project.access": "Accès au projet",
+  "project.access.removed": "Accès au projet retiré",
+  "spec.updated": "Architecture modifiée",
+  "evidence.changed": "Preuve attestée",
+  "waiver.changed": "Dérogation signée ou retirée",
+  "audit.requested": "Audit demandé",
+  "audit.done": "Audit terminé",
+  "task.moved": "Tâche déplacée",
+  "domain.added": "Domaine ajouté",
+  "domain.verified": "Domaine vérifié",
+  "domain.removed": "Domaine retiré",
+};
+
+function Activity({ orgId }: { orgId: string }) {
+  const [rows, setRows] = useState<{ id: number; at: string; action: string; target: string | null; actor: string | null; project: string | null; meta: Record<string, unknown> }[]>();
+  useEffect(() => {
+    api<typeof rows>(`/orgs/${orgId}/activity`).then(setRows).catch(notify);
+  }, [orgId]);
+  return (
+    <Card title="Journal d'activité" aside={<span className="text-xs text-fg-3">Inaltérable · 300 dernières entrées</span>}>
+      <table className="w-full text-left text-[13px]">
+        <tbody>
+          {rows?.map((r) => (
+            <tr key={r.id} className="border-b border-line last:border-0">
+              <td className="whitespace-nowrap px-4 py-2 text-xs text-fg-3" title={new Date(r.at).toLocaleString("fr-FR")}>
+                {ago(r.at)}
+              </td>
+              <td className="px-2 py-2">{r.actor ?? <span className="text-fg-4">système</span>}</td>
+              <td className="px-2 py-2">{ACTION_LABEL[r.action] ?? r.action}</td>
+              <td className="max-w-[320px] truncate px-4 py-2 text-xs text-fg-3">
+                {[r.project, r.action === "audit.done" ? `${String(r.meta.verdict)} · ${String(r.meta.score)}` : r.target].filter(Boolean).join(" · ")}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  );
+}
+
+/* ---------------------------------------------------------------- organization */
+
+function OrgSettings({ orgId, name: initial }: { orgId: string; name: string }) {
+  const [name, setName] = useState(initial);
+  return (
+    <Card title="Organisation">
+      <form
+        className="flex items-end gap-2 p-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            await api(`/orgs/${orgId}`, { method: "PATCH", body: { name } });
+            await useStore.getState().loadMe();
+            useStore.getState().notify("Nom enregistré.", "info");
+          } catch (err) {
+            notify(err);
+          }
+        }}
+      >
+        <Field label="Nom" className="flex-1">
+          <Input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Button type="submit" variant="primary" disabled={!name.trim() || name === initial}>
+          Enregistrer
+        </Button>
+      </form>
+    </Card>
+  );
+}

@@ -13,7 +13,7 @@ export const cx = clsx;
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   icon?: ReactNode;
 };
 
@@ -26,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       className={cx(
         "inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors disabled:pointer-events-none disabled:opacity-45",
-        size === "sm" ? "h-7 px-2.5 text-xs" : "h-8 px-3 text-[13px]",
+        size === "sm" ? "h-7 px-2.5 text-xs" : size === "lg" ? "h-9 px-3.5 text-[13.5px]" : "h-8 px-3 text-[13px]",
         variant === "primary" && "bg-accent text-accent-fg hover:opacity-90",
         variant === "secondary" && "border border-line-strong bg-surface text-fg shadow-[0_1px_0_rgb(0_0_0/0.03)] hover:bg-surface-2",
         variant === "ghost" && "text-fg-2 hover:bg-sunken hover:text-fg",

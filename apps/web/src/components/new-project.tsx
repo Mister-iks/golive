@@ -38,17 +38,21 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
   const router = useRouter();
   const [name, setName] = useState("");
 
-  const pick = (template: string) => {
-    const id = create({ template, name: name.trim() || undefined });
-    onOpenChange(false);
-    router.push(`/p/${id}`);
+  const pick = async (template: string) => {
+    try {
+      const id = await create({ template, name: name.trim() || undefined });
+      onOpenChange(false);
+      router.push(`/p/${id}`);
+    } catch (e) {
+      useStore.getState().notify((e as Error).message);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="Nouveau projet" description="Partez d'une architecture type, vous l'adapterez dans le Studio." width={760}>
       <div className="flex flex-col gap-4 p-5">
         <Input autoFocus placeholder="Nom du projet (facultatif)" value={name} onChange={(e) => setName(e.target.value)} />
-        <TemplateGrid onPick={pick} />
+        <TemplateGrid onPick={(t) => void pick(t)} />
       </div>
     </Dialog>
   );
@@ -66,7 +70,11 @@ export function ImportButton() {
       setError(r.issues.map((i) => `${i.line ? `ligne ${i.line} : ` : ""}${i.message}`).join("\n"));
       return;
     }
-    router.push(`/p/${create({ spec: r.spec })}`);
+    try {
+      router.push(`/p/${await create({ spec: r.spec })}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   return (

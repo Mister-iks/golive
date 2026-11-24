@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronRight, Download, FileJson, FolderKanban } from "lucide-react";
+import { ChevronRight, Download, Eye, FileJson, FolderKanban, Share2 } from "lucide-react";
 import type { Report } from "@golive/engine";
 import { useStore, type Project } from "@/lib/store";
 import { download, exportYaml, slug } from "@/lib/format";
-import { useHydrated, useReport, useTaskSync } from "@/lib/use-report";
+import { useProject, useReport } from "@/lib/use-report";
 import { Board } from "./board";
 import { Checks } from "./checks";
 import { Menu, MenuItem } from "./menu";
 import { ReportView } from "./report";
+import { ShareDialog } from "./share";
 import { Sheet } from "./sheet";
 import { Shell } from "./shell";
 import { Studio } from "./studio/studio";
@@ -35,10 +36,10 @@ export interface WorkspaceProps {
 }
 
 export function Workspace({ id }: { id: string }) {
-  const hydrated = useHydrated();
-  const project = useStore((s) => s.projects[id]);
+  const { project, error } = useProject(id);
   const report = useReport(project);
-  useTaskSync(id, report);
+  const saving = useStore((s) => s.saving[id]);
+  const [sharing, setSharing] = useState(false);
 
   const router = useRouter();
   const params = useSearchParams();
@@ -61,16 +62,16 @@ export function Workspace({ id }: { id: string }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
-  if (!hydrated) return <Shell>{null}</Shell>;
-  if (!project || !report) {
+  if (error) {
     return (
       <Shell>
         <Empty icon={<FolderKanban size={16} />} title="Projet introuvable" action={<Link href="/"><Button>Retour aux projets</Button></Link>}>
-          Il a peut-être été supprimé, ou il a été créé dans un autre navigateur.
+          {error}
         </Empty>
       </Shell>
     );
   }
+  if (!project || !report) return <Shell>{null}</Shell>;
 
   const openTasks = Object.values(project.tasks).filter((t) => t.column !== "done").length;
   const props: WorkspaceProps = { project, report, go };
@@ -87,12 +88,26 @@ export function Workspace({ id }: { id: string }) {
             <ProjectName project={project} />
           </div>
           <div className="flex items-center gap-3">
+            <span className="text-[11px] text-fg-3 max-md:hidden" aria-live="polite">
+              {!project.rights.edit ? (
+                <span className="flex items-center gap-1">
+                  <Eye size={12} /> {project.rights.contribute ? "Contribution" : "Lecture seule"}
+                </span>
+              ) : saving ? (
+                "Enregistrement…"
+              ) : (
+                "Enregistré"
+              )}
+            </span>
             <Tip label={report.verdict.reasons.join(" ")}>
               <button onClick={() => go("checks")} className="flex items-center gap-2.5 rounded-md py-1 pl-1 pr-2 hover:bg-sunken">
                 <ScoreGauge value={report.score.global} threshold={report.threshold} size={30} />
                 <VerdictPill decision={report.verdict.decision} />
               </button>
             </Tip>
+            <Button icon={<Share2 size={14} />} onClick={() => setSharing(true)}>
+              Partager
+            </Button>
             <Menu
               trigger={
                 <Button icon={<Download size={14} />} aria-label="Exporter">
@@ -143,6 +158,7 @@ export function Workspace({ id }: { id: string }) {
         {tab === "report" && <ReportView {...props} />}
         {tab === "spec" && <YamlEditor {...props} />}
       </div>
+      <ShareDialog project={project} open={sharing} onOpenChange={setSharing} />
     </Shell>
   );
 }
