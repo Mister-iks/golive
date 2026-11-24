@@ -1,0 +1,28 @@
+{
+  "name": "@golive/db",
+  "version": "0.1.0",
+  "description": "PostgreSQL schema, migrations, row level security and job queue for PcyBox GoLive.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    "./migrate": "./src/migrate.ts",
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run",
+    "migrate": "node --experimental-strip-types src/migrate-cli.ts"
+  },
+  "dependencies": {
+    "@golive/engine": "workspace:*",
+    "@golive/packs-sdk": "workspace:*",
+    "@golive/spec": "workspace:*",
+    "drizzle-orm": "^0.45.4",
+    "pg-boss": "^12.39.0",
+    "postgres": "^4.1.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.12"
+  }
+}
