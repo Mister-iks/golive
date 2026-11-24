@@ -1,0 +1,10 @@
+{
+  "name": "@golive/packs",
+  "version": "0.1.0",
+  "description": "Community compliance packs for GoLive.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p ." },
+  "dependencies": { "@golive/packs-sdk": "workspace:*", "@golive/spec": "workspace:*" }
+}
