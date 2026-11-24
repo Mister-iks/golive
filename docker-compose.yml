@@ -43,6 +43,7 @@ services:
       <<: *env
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env (openssl rand -base64 32)}
       GOLIVE_SIGNUP: ${GOLIVE_SIGNUP:-open}
+      GOLIVE_REQUIRE_MFA: ${GOLIVE_REQUIRE_MFA:-1}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
     depends_on:

@@ -32,6 +32,9 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: 60 * 10,
       sendMagicLink: async ({ email, url }) => {
+        // A magic link would bypass the second factor: accounts with 2FA sign in with password and code.
+        const [u] = await db().select({ twoFactor: users.twoFactorEnabled }).from(users).where(eq(sql`lower(${users.email})`, email.toLowerCase()));
+        if (u?.twoFactor) return;
         await sendMail(email, "Votre lien de connexion PcyBox GoLive", `Bonjour,\n\nPour vous connecter, ouvrez ce lien (valable 10 minutes) :\n${url}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`);
       },
     }),

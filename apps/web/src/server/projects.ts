@@ -14,7 +14,7 @@ import {
   type WebByEnv,
 } from "@golive/db";
 import { loadProject, type Rights } from "./access";
-import { forbidden, HttpError } from "./http";
+import { forbidden, HttpError, requireMfa } from "./http";
 
 export interface AuditDto {
   id: string;
@@ -91,7 +91,8 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stri
  * Saves a new version of the spec. Each part of the spec needs its own right:
  * waivers need a validator, evidence a contributor, everything else an editor.
  */
-export async function saveSpec(tx: Tx, userId: string, id: string, input: unknown, revision: number) {
+export async function saveSpec(tx: Tx, user: { id: string; twoFactorEnabled?: boolean | null }, id: string, input: unknown, revision: number) {
+  const userId = user.id;
   const { project, rights } = await loadProject(tx, id);
   if (project.revision !== revision) throw new HttpError(409, "Le projet a été modifié par quelqu'un d'autre. Rechargez pour voir la dernière version.", "conflict");
   const spec = parseSpec(input);
@@ -102,6 +103,7 @@ export async function saveSpec(tx: Tx, userId: string, id: string, input: unknow
   const rest = (s: Spec) => ({ ...s, waivers: undefined, evidence: undefined });
   const restChanged = !same(rest(prev), rest(spec));
   if (waiversChanged && !rights.validate) throw forbidden("Seul un Valideur peut signer ou retirer une dérogation.");
+  if (waiversChanged) requireMfa(user);
   if (evidenceChanged && !rights.contribute) throw forbidden("Votre rôle ne permet pas d'attester une preuve.");
   if (restChanged && !rights.edit) throw forbidden("Votre rôle ne permet pas de modifier l'architecture.");
   if (!waiversChanged && !evidenceChanged && !restChanged) return { revision: project.revision, tasks: undefined };

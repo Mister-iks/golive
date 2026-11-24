@@ -12,7 +12,7 @@ export const GET = route<P>(async ({ params, as }) => as((tx) => projectDto(tx, 
 
 export const PUT = route<P>(async ({ req, params, user, as }) => {
   const body = await readJson(req, z.object({ spec: z.unknown(), revision: z.number().int() }));
-  return as((tx) => saveSpec(tx, user.id, params.id, body.spec, body.revision));
+  return as((tx) => saveSpec(tx, user, params.id, body.spec, body.revision));
 });
 
 export const DELETE = route<P>(async ({ params, user, as }) =>

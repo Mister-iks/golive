@@ -17,6 +17,15 @@ export class HttpError extends Error {
 export const forbidden = (message = "Action non autorisée pour votre rôle.") => new HttpError(403, message, "forbidden");
 export const notFound = (message = "Introuvable.") => new HttpError(404, message, "not_found");
 
+export const mfaEnforced = () => process.env.GOLIVE_REQUIRE_MFA !== "0";
+
+/** Administrators and validators act only with two-factor authentication enabled. */
+export function requireMfa(user: { twoFactorEnabled?: boolean | null }) {
+  if (mfaEnforced() && !user.twoFactorEnabled) {
+    throw new HttpError(403, "Activez la double authentification dans Mon compte pour effectuer cette action.", "mfa_required");
+  }
+}
+
 export interface Ctx<P = Record<string, string>> {
   req: NextRequest;
   params: P;

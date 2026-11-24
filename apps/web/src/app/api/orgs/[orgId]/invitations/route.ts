@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { readJson, route } from "@/server/http";
+import { readJson, requireMfa, route } from "@/server/http";
 import { invite } from "@/server/orgs";
 
 export const runtime = "nodejs";
@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 const PROJECT_ROLES = ["responsable", "editeur", "contributeur", "lecteur", "valideur"] as const;
 
 export const POST = route<{ orgId: string }>(async ({ req, params, user, as }) => {
+  requireMfa(user);
   const input = await readJson(
     req,
     z.object({

@@ -64,7 +64,17 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </aside>
-      <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">{me ? children : null}</main>
+      <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">
+        {me?.mfaRequired && path !== "/account" && (
+          <div className="no-print flex shrink-0 items-center justify-between gap-4 border-b border-amber-line bg-amber-soft px-5 py-2 text-[13px] text-amber">
+            <span>La double authentification est obligatoire pour votre rôle. Sans elle, invitations, rôles et dérogations vous sont bloqués.</span>
+            <Link href="/account" className="shrink-0 font-medium underline underline-offset-2">
+              L'activer
+            </Link>
+          </div>
+        )}
+        {me ? children : null}
+      </main>
       <Toast />
     </div>
   );

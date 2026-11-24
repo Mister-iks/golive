@@ -64,6 +64,8 @@ export interface ProjectSummary {
 export interface Me {
   user: { id: string; name: string; email: string; twoFactorEnabled: boolean };
   orgs: { id: string; name: string; role: OrgRole }[];
+  /** Two-factor authentication is mandatory for this user's roles and not enabled yet. */
+  mfaRequired: boolean;
   settings: { mail: boolean; domainVerification: boolean; maxPages: number };
 }
 

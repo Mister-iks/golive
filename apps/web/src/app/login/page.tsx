@@ -24,6 +24,10 @@ function Login() {
   const [error, setError] = useState<string>();
   const [info, setInfo] = useState<string>();
   const [config, setConfig] = useState<{ mail: boolean; signup: "open" | "invite" }>();
+  const [second, setSecond] = useState(false);
+  const [code, setCode] = useState("");
+  const [backup, setBackup] = useState(false);
+  const [trust, setTrust] = useState(false);
 
   useEffect(() => {
     fetch("/api/config")
@@ -35,11 +39,72 @@ function Login() {
   const submit = async () => {
     setBusy(true);
     setError(undefined);
-    const { error } = await authClient.signIn.email({ email, password });
+    const { data, error } = await authClient.signIn.email({ email, password });
     setBusy(false);
     if (error) return setError(error.status === 401 ? "E-mail ou mot de passe incorrect." : error.message ?? "Connexion impossible.");
+    if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
+      setPassword("");
+      return setSecond(true);
+    }
     location.assign(next);
   };
+
+  const verify = async () => {
+    setBusy(true);
+    setError(undefined);
+    const value = code.replace(/\s/g, "");
+    const { error } = backup
+      ? await authClient.twoFactor.verifyBackupCode({ code: value, trustDevice: trust })
+      : await authClient.twoFactor.verifyTotp({ code: value, trustDevice: trust });
+    setBusy(false);
+    if (error) return setError(backup ? "Code de secours incorrect ou déjà utilisé." : "Code incorrect. Attendez le code suivant et réessayez.");
+    location.assign(next);
+  };
+
+  if (second) {
+    return (
+      <AuthFrame title="Vérification en deux étapes" subtitle={backup ? "Saisissez l'un de vos codes de secours." : "Saisissez le code à 6 chiffres affiché par votre application d'authentification."}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void verify();
+          }}
+        >
+          <Input
+            mono
+            autoFocus
+            required
+            inputMode={backup ? "text" : "numeric"}
+            autoComplete="one-time-code"
+            placeholder={backup ? "xxxxx-xxxxx" : "123 456"}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            className="h-10 text-center text-[16px] tracking-[0.2em]"
+            aria-label={backup ? "Code de secours" : "Code à 6 chiffres"}
+          />
+          <label className="flex items-center gap-2 text-[13px] text-fg-2">
+            <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> Faire confiance à cet appareil pendant 30 jours
+          </label>
+          {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
+          <Button type="submit" variant="primary" size="lg" disabled={busy || !code.trim()}>
+            Vérifier
+          </Button>
+          <button
+            type="button"
+            className="text-[13px] text-fg-3 underline-offset-2 hover:text-fg hover:underline"
+            onClick={() => {
+              setBackup((b) => !b);
+              setCode("");
+              setError(undefined);
+            }}
+          >
+            {backup ? "Utiliser l'application d'authentification" : "Téléphone perdu ? Utiliser un code de secours"}
+          </button>
+        </form>
+      </AuthFrame>
+    );
+  }
 
   const magic = async () => {
     if (!email) return setError("Saisissez votre e-mail d'abord.");

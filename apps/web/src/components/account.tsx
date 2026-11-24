@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DropdownMenu } from "radix-ui";
@@ -130,10 +131,10 @@ export function UserMenu() {
           .map((w) => w[0])
           .join("")}
       </span>
-      <div className="min-w-0 flex-1 leading-tight">
+      <Link href="/account" className="min-w-0 flex-1 rounded leading-tight hover:opacity-80" title="Mon compte">
         <p className="truncate text-xs font-medium">{me.user.name}</p>
         <p className="truncate text-[10.5px] text-fg-3">{me.user.email}</p>
-      </div>
+      </Link>
       <button
         onClick={async () => {
           await authClient.signOut();
