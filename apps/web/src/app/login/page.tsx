@@ -23,7 +23,7 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [info, setInfo] = useState<string>();
-  const [config, setConfig] = useState<{ mail: boolean; signup: "open" | "invite" }>();
+  const [config, setConfig] = useState<{ mail: boolean; signup: "first" | "invite" }>();
   const [second, setSecond] = useState(false);
   const [code, setCode] = useState("");
   const [backup, setBackup] = useState(false);
@@ -121,9 +121,9 @@ function Login() {
       title="Connexion"
       subtitle="Retrouvez vos projets et leurs verdicts."
       footer={
-        config?.signup !== "invite" && (
+        config?.signup === "first" && (
           <>
-            Pas encore de compte ?{" "}
+            Première connexion ?{" "}
             <Link href={`/signup${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-fg underline-offset-2 hover:underline">
               Créer un compte
             </Link>

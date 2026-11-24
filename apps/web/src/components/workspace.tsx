@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronRight, Download, Eye, FileJson, FolderKanban, Share2 } from "lucide-react";
+import { ChevronRight, Download, Eye, FileJson, FolderKanban } from "lucide-react";
 import type { Report } from "@golive/engine";
 import { useStore, type Project } from "@/lib/store";
 import { download, exportYaml, slug } from "@/lib/format";
@@ -12,7 +12,6 @@ import { Board } from "./board";
 import { Checks } from "./checks";
 import { Menu, MenuItem } from "./menu";
 import { ReportView } from "./report";
-import { ShareDialog } from "./share";
 import { Sheet } from "./sheet";
 import { Shell } from "./shell";
 import { Studio } from "./studio/studio";
@@ -39,7 +38,6 @@ export function Workspace({ id }: { id: string }) {
   const { project, error } = useProject(id);
   const report = useReport(project);
   const saving = useStore((s) => s.saving[id]);
-  const [sharing, setSharing] = useState(false);
 
   const router = useRouter();
   const params = useSearchParams();
@@ -105,9 +103,6 @@ export function Workspace({ id }: { id: string }) {
                 <VerdictPill decision={report.verdict.decision} />
               </button>
             </Tip>
-            <Button icon={<Share2 size={14} />} onClick={() => setSharing(true)}>
-              Partager
-            </Button>
             <Menu
               trigger={
                 <Button icon={<Download size={14} />} aria-label="Exporter">
@@ -158,7 +153,6 @@ export function Workspace({ id }: { id: string }) {
         {tab === "report" && <ReportView {...props} />}
         {tab === "spec" && <YamlEditor {...props} />}
       </div>
-      <ShareDialog project={project} open={sharing} onOpenChange={setSharing} />
     </Shell>
   );
 }

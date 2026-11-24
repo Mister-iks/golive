@@ -5,11 +5,10 @@ import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { Check, Copy, Globe, Mail, RotateCw, Trash2, UserPlus } from "lucide-react";
 import { ORG_ROLE_LABEL } from "@/components/account";
 import { PageHeader, Shell } from "@/components/shell";
-import { PROJECT_ROLES } from "@/components/share";
 import { Button, cx, Dialog, Empty, Field, Input, Select, Tip } from "@/components/ui";
 import { api } from "@/lib/api";
 import { ago } from "@/lib/format";
-import { useStore, type OrgRole, type ProjectRole } from "@/lib/store";
+import { useStore, type OrgRole } from "@/lib/store";
 import { useMe } from "@/lib/use-report";
 
 const TABS = [
@@ -86,7 +85,7 @@ const notify = (e: unknown) => useStore.getState().notify((e as Error).message);
 interface MembersData {
   role: OrgRole;
   members: { userId: string; name: string; email: string; role: OrgRole; twoFactor: boolean | null; since: string }[];
-  invitations: { id: string; email: string; orgRole: OrgRole; projects: { projectId: string; role: ProjectRole }[]; expiresAt: string; expired: boolean; createdAt: string }[];
+  invitations: { id: string; email: string; orgRole: OrgRole; expiresAt: string; expired: boolean; createdAt: string }[];
 }
 
 function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
@@ -134,7 +133,7 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
                   onChange={(e) => act(api(`/orgs/${orgId}/members/${m.userId}`, { method: "PATCH", body: { role: e.target.value } }))}
                   aria-label={`Rôle de ${m.name}`}
                 >
-                  {(["owner", "admin", "member", "guest"] as const).map((r) => (
+                  {(["owner", "admin", "member"] as const).map((r) => (
                     <option key={r} value={r}>
                       {ORG_ROLE_LABEL[r]}
                     </option>
@@ -157,7 +156,7 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
           ))}
         </ul>
         <p className="border-t border-line bg-surface-2 px-4 py-2.5 text-xs text-fg-3">
-          Propriétaires et administrateurs gèrent tous les projets. Les membres les consultent. Les invités ne voient que les projets partagés avec eux.
+          Tous les membres travaillent sur tous les projets. Propriétaires et administrateurs gèrent en plus l'équipe, les domaines et signent les dérogations.
         </p>
       </Card>
 
@@ -170,8 +169,7 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
                 <div className="min-w-0 flex-1 leading-tight">
                   <p className="truncate font-mono text-[12.5px]">{i.email}</p>
                   <p className="text-xs text-fg-3">
-                    {ORG_ROLE_LABEL[i.orgRole]}
-                    {i.projects.length ? ` · ${i.projects.length} projet${i.projects.length > 1 ? "s" : ""}` : ""} ·{" "}
+                    {ORG_ROLE_LABEL[i.orgRole]} ·{" "}
                     {i.expired ? <span className="text-red">expirée</span> : `expire ${ago(i.expiresAt)}`}
                   </p>
                 </div>
@@ -216,28 +214,17 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
 }
 
 function InviteDialog({ orgId, open, onOpenChange, onDone }: { orgId: string; open: boolean; onOpenChange: (o: boolean) => void; onDone: (r: { url: string; email: string; sent: boolean }) => void }) {
-  const list = useStore((s) => s.list);
   const [email, setEmail] = useState("");
-  const [orgRole, setOrgRole] = useState<"admin" | "member" | "guest">("guest");
-  const [projects, setProjects] = useState<Record<string, ProjectRole>>({});
-  const [until, setUntil] = useState("");
+  const [orgRole, setOrgRole] = useState<"admin" | "member">("member");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (open && !list) void useStore.getState().loadList();
-  }, [open]);
 
   const submit = async () => {
     setBusy(true);
     try {
-      const r = await api<{ link: string; emailSent: boolean }>(`/orgs/${orgId}/invitations`, {
-        body: { email, orgRole, projects: Object.entries(projects).map(([projectId, role]) => ({ projectId, role })), accessExpiresAt: until || null },
-      });
+      const r = await api<{ link: string; emailSent: boolean }>(`/orgs/${orgId}/invitations`, { body: { email, orgRole } });
       onOpenChange(false);
       onDone({ url: r.link, email, sent: r.emailSent });
       setEmail("");
-      setProjects({});
-      setUntil("");
     } catch (e) {
       notify(e);
     } finally {
@@ -246,7 +233,7 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: { orgId: string; op
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Inviter quelqu'un" description="Un collègue, un prestataire ou un client. Vous choisissez exactement ce qu'il voit." width={600}>
+    <Dialog open={open} onOpenChange={onOpenChange} title="Inviter quelqu'un" description="Un collègue rejoint l'organisation et travaille sur tous ses projets." width={520}>
       <form
         className="flex flex-col gap-4 p-5"
         onSubmit={(e) => {
@@ -258,56 +245,19 @@ function InviteDialog({ orgId, open, onOpenChange, onDone }: { orgId: string; op
           <Field label="E-mail">
             <Input type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom@entreprise.sn" />
           </Field>
-          <Field label="Rôle dans l'organisation">
+          <Field label="Rôle">
             <Select value={orgRole} onChange={(e) => setOrgRole(e.target.value as typeof orgRole)}>
-              <option value="guest">Invité</option>
               <option value="member">Membre</option>
               <option value="admin">Administrateur</option>
             </Select>
           </Field>
         </div>
-        <Field label="Projets partagés" hint={orgRole === "guest" ? "Un invité ne voit que ces projets." : "Facultatif : un rôle précis sur certains projets."}>
-          <div className="max-h-56 overflow-auto rounded-md border border-line">
-            {!list?.length ? (
-              <p className="px-3 py-3 text-xs text-fg-3">Aucun projet dans cette organisation.</p>
-            ) : (
-              list.map((p) => (
-                <label key={p.id} className="flex items-center gap-3 border-b border-line px-3 py-2 last:border-0">
-                  <input
-                    type="checkbox"
-                    checked={!!projects[p.id]}
-                    onChange={(e) =>
-                      setProjects((cur) => {
-                        const next = { ...cur };
-                        if (e.target.checked) next[p.id] = "contributeur";
-                        else delete next[p.id];
-                        return next;
-                      })
-                    }
-                  />
-                  <span className="min-w-0 flex-1 truncate text-[13px]">{p.spec.project.name}</span>
-                  <div className="w-[150px]">
-                    <Select value={projects[p.id] ?? "contributeur"} disabled={!projects[p.id]} onChange={(e) => setProjects((cur) => ({ ...cur, [p.id]: e.target.value as ProjectRole }))}>
-                      {PROJECT_ROLES.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </label>
-              ))
-            )}
-          </div>
-        </Field>
-        <Field label="Fin d'accès aux projets" hint="Facultatif : l'accès aux projets cochés s'arrête à cette date.">
-          <Input type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setUntil(e.target.value)} />
-        </Field>
+        <p className="text-xs text-fg-3">Invités clients limités à certains projets, rôles par projet et rôle Valideur : éditions Team et Business.</p>
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button type="submit" variant="primary" disabled={busy || !email || (orgRole === "guest" && !Object.keys(projects).length)}>
+          <Button type="submit" variant="primary" disabled={busy || !email}>
             Envoyer l'invitation
           </Button>
         </div>

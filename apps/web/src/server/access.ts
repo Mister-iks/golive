@@ -8,7 +8,7 @@ export interface Rights {
   edit: boolean;
   /** Move tasks, attach evidence, launch audits. */
   contribute: boolean;
-  /** Sign waivers and pronounce the Go. Organization owners and admins, or a project Valideur. */
+  /** Sign waivers. Organization owners and administrators (a dedicated validator role is a Premium feature). */
   validate: boolean;
   /** Share the project, change roles, delete it. */
   manage: boolean;
@@ -21,7 +21,7 @@ export function rightsFor(role: ProjectRole, orgRole: OrgRole | null): Rights {
     orgRole,
     edit: role === "responsable" || role === "editeur",
     contribute: role !== "lecteur",
-    validate: role === "valideur" || admin,
+    validate: admin,
     manage: role === "responsable",
   };
 }

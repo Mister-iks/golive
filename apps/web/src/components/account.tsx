@@ -1,16 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DropdownMenu } from "radix-ui";
-import { Check, ChevronsUpDown, LogOut, Plus, Settings, X } from "lucide-react";
-import { api } from "@/lib/api";
+import { LogOut, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useStore } from "@/lib/store";
 import { useMe } from "@/lib/use-report";
-import { MenuItem } from "./menu";
-import { Button, cx, Dialog, Field, Input } from "./ui";
+import { cx } from "./ui";
 
 export const ORG_ROLE_LABEL = { owner: "Propriétaire", admin: "Administrateur", member: "Membre", guest: "Invité" } as const;
 
@@ -22,100 +18,25 @@ function Initial({ name, className }: { name: string; className?: string }) {
   );
 }
 
+/** Community runs one organization per installation. */
 export function OrgSwitcher() {
   const { me, org } = useMe();
-  const setOrg = useStore((s) => s.setOrg);
-  const router = useRouter();
-  const [creating, setCreating] = useState(false);
-
-  if (!me || !org) return <div className="h-[42px] rounded-md border border-line bg-surface" />;
-
+  if (!me) return <div className="h-[42px] rounded-md border border-line bg-surface" />;
+  if (!org) {
+    return (
+      <div className="rounded-md border border-dashed border-line px-2.5 py-1.5 text-[11px] leading-snug text-fg-3">
+        Aucune organisation. Ouvrez le lien d'invitation reçu par e-mail.
+      </div>
+    );
+  }
   return (
-    <>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
-          <button className="flex w-full items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-left hover:border-line-strong">
-            <Initial name={org.name} />
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-xs font-medium">{org.name}</p>
-              <p className="text-[10.5px] text-fg-3">{ORG_ROLE_LABEL[org.role]}</p>
-            </div>
-            <ChevronsUpDown size={13} className="shrink-0 text-fg-3" />
-          </button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content align="start" sideOffset={4} className="z-50 w-[240px] rounded-lg border border-line bg-surface p-1 shadow-pop">
-            <DropdownMenu.Label className="px-2 pb-1 pt-1.5 text-[11px] text-fg-3">Organisations</DropdownMenu.Label>
-            {me.orgs.map((o) => (
-              <DropdownMenu.Item
-                key={o.id}
-                onSelect={() => {
-                  setOrg(o.id);
-                  router.push("/");
-                }}
-                className="flex h-8 cursor-pointer items-center gap-2 rounded-md px-2 text-[13px] outline-none data-[highlighted]:bg-sunken"
-              >
-                <Initial name={o.name} />
-                <span className="min-w-0 flex-1 truncate">{o.name}</span>
-                {o.id === org.id && <Check size={14} className="text-fg-2" />}
-              </DropdownMenu.Item>
-            ))}
-            <DropdownMenu.Separator className="my-1 h-px bg-line" />
-            <MenuItem icon={<Settings size={14} />} onSelect={() => router.push("/settings")}>
-              Membres et réglages
-            </MenuItem>
-            <MenuItem icon={<Plus size={14} />} onSelect={() => setCreating(true)}>
-              Nouvelle organisation
-            </MenuItem>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-      <NewOrgDialog open={creating} onOpenChange={setCreating} />
-    </>
-  );
-}
-
-function NewOrgDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const router = useRouter();
-  const submit = async () => {
-    setBusy(true);
-    try {
-      const org = await api<{ id: string }>("/orgs", { body: { name } });
-      await useStore.getState().loadMe();
-      useStore.getState().setOrg(org.id);
-      onOpenChange(false);
-      setName("");
-      router.push("/settings");
-    } catch (e) {
-      useStore.getState().notify((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Nouvelle organisation" description="Une agence, une entreprise, un ministère : chaque organisation a ses propres projets et membres." width={440}>
-      <form
-        className="flex flex-col gap-4 p-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        <Field label="Nom">
-          <Input autoFocus required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Agence Teranga Digital" />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <Button type="button" onClick={() => onOpenChange(false)}>
-            Annuler
-          </Button>
-          <Button type="submit" variant="primary" disabled={busy || !name.trim()}>
-            Créer
-          </Button>
-        </div>
-      </form>
-    </Dialog>
+    <Link href="/settings" className="flex w-full items-center gap-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-left hover:border-line-strong">
+      <Initial name={org.name} />
+      <div className="min-w-0 flex-1 leading-tight">
+        <p className="truncate text-xs font-medium">{org.name}</p>
+        <p className="text-[10.5px] text-fg-3">{ORG_ROLE_LABEL[org.role]}</p>
+      </div>
+    </Link>
   );
 }
 

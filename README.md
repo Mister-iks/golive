@@ -32,7 +32,7 @@ PcyBox GoLive turns them into **versioned, deterministic rules** that run agains
 | **Deterministic engine** | Same `golive.yaml` + same pack versions + same site state = same verdict, with a reproducible fingerprint. No AI decides. |
 | **Compliance packs** | Core, Web security (OWASP), Operations, Accessibility (WCAG 2.2), Payment, Senegal (CDP), EU and France (GDPR). Every rule cites its source. |
 | **Live site audit** | Enter a URL and get a real audit in the background. *Quick*: passive checks of the home page (TLS, security headers, cookies, legal pages, indexing). *Full*: a real Chromium browses up to 20 pages like a visitor and checks accessibility with axe-core (WCAG 2.2 AA), broken links, Core Web Vitals, mixed content and trackers loaded before consent. SSRF-safe, domain ownership proven by DNS or file first. |
-| **Teams** | Accounts, organizations, roles (owner, admin, member, guest) and per-project roles (manager, editor, contributor, validator, reader). Invitations by e-mail valid 7 days, optional access end date, append-only activity log. Two-factor authentication (TOTP and backup codes), mandatory for owners, administrators and validators. Tenant isolation enforced by PostgreSQL row level security. |
+| **Team** | One organization per installation, unlimited users with three roles (owner, administrator, member). The first account creates the organization, others join by e-mail invitation valid 7 days. Two-factor authentication (TOTP and backup codes), mandatory for owners and administrators. Append-only activity log. Data access enforced by PostgreSQL row level security. |
 | **Proofs and waivers** | What a robot cannot verify (restore test, CDP filing, DPA…) is attested by a named person. A signed waiver turns a blocker into a Conditional Go until it expires. |
 | **Remediation board** | One task per open issue, no duplicates, closed automatically when the audit sees the fix, reopened on regression. |
 | **Report** | Printable Go / No-Go report (PDF) and JSON export. |
@@ -164,7 +164,9 @@ packs/            Community compliance packs (Apache-2.0)
 | Self-hosted | ✓ | | ✓ |
 | AI copilot (architecture from a brief) | | ✓ | ✓ (self-hosted model possible) |
 | Signed report, public badge, registry | | ✓ | ✓ |
-| Scheduled audits, alerts, team features | | ✓ | ✓ |
+| Users and basic roles (owner, admin, member) | ✓ | ✓ | ✓ |
+| Several organizations, client guests per project, project roles, validator role | | ✓ | ✓ |
+| Scheduled audits, alerts, SSO | | ✓ | ✓ |
 | National dashboard, official national pack | | | ✓ |
 
 Rule of thumb: everything needed to **verify** stays open; what saves a **team** time is Premium.

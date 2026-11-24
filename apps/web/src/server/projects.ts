@@ -102,7 +102,7 @@ export async function saveSpec(tx: Tx, user: { id: string; twoFactorEnabled?: bo
   const evidenceChanged = !same(prev.evidence, spec.evidence);
   const rest = (s: Spec) => ({ ...s, waivers: undefined, evidence: undefined });
   const restChanged = !same(rest(prev), rest(spec));
-  if (waiversChanged && !rights.validate) throw forbidden("Seul un Valideur peut signer ou retirer une dérogation.");
+  if (waiversChanged && !rights.validate) throw forbidden("Seuls les propriétaires et administrateurs signent ou retirent une dérogation.");
   if (waiversChanged) requireMfa(user);
   if (evidenceChanged && !rights.contribute) throw forbidden("Votre rôle ne permet pas d'attester une preuve.");
   if (restChanged && !rights.edit) throw forbidden("Votre rôle ne permet pas de modifier l'architecture.");

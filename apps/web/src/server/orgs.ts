@@ -4,17 +4,14 @@ import {
   asc,
   eq,
   gt,
-  inArray,
   invitations,
   isNull,
   logActivity,
   orgMembers,
   organizations,
   projectMembers,
-  projects,
   sql,
   users,
-  type InvitedProject,
   type OrgRole,
   type Tx,
 } from "@golive/db";
@@ -36,15 +33,6 @@ export async function listOrgs(tx: Tx, userId: string) {
     .orderBy(asc(organizations.createdAt));
 }
 
-export async function createOrg(tx: Tx, userId: string, name: string) {
-  // No RETURNING: the new organization only becomes visible once the membership exists.
-  const id = crypto.randomUUID();
-  await tx.insert(organizations).values({ id, name });
-  await tx.insert(orgMembers).values({ orgId: id, userId, role: "owner" });
-  await logActivity(tx, { orgId: id, actorId: userId, action: "org.created", target: name });
-  return { id, name, role: "owner" as const };
-}
-
 export async function listMembers(tx: Tx, orgId: string) {
   const role = await orgRole(tx, orgId);
   const members = await tx
@@ -60,9 +48,7 @@ export async function listMembers(tx: Tx, orgId: string) {
             id: invitations.id,
             email: invitations.email,
             orgRole: invitations.orgRole,
-            projects: invitations.projects,
             expiresAt: invitations.expiresAt,
-            accessExpiresAt: invitations.accessExpiresAt,
             createdAt: invitations.createdAt,
           })
           .from(invitations)
@@ -108,25 +94,18 @@ async function assertAnotherOwner(tx: Tx, orgId: string, userId: string) {
 
 export interface InviteInput {
   email: string;
-  orgRole: Exclude<OrgRole, "owner">;
-  projects: InvitedProject[];
-  accessExpiresAt?: string | null;
+  orgRole: "admin" | "member";
 }
 
 export async function invite(tx: Tx, actor: { id: string; name: string }, orgId: string, input: InviteInput) {
   requireOrgAdmin(await orgRole(tx, orgId));
   const email = input.email.trim().toLowerCase();
-  if (input.projects.length) {
-    const ids = input.projects.map((p) => p.projectId);
-    const found = await tx.select({ id: projects.id }).from(projects).where(and(eq(projects.orgId, orgId), inArray(projects.id, ids)));
-    if (found.length !== new Set(ids).size) throw new HttpError(400, "Projet inconnu dans cette organisation.");
-  }
   const already = await tx
     .select({ id: users.id })
     .from(orgMembers)
     .innerJoin(users, eq(users.id, orgMembers.userId))
     .where(and(eq(orgMembers.orgId, orgId), eq(sql`lower(${users.email})`, email)));
-  if (already.length && !input.projects.length) throw new HttpError(409, "Cette personne fait déjà partie de l'organisation.");
+  if (already.length) throw new HttpError(409, "Cette personne fait déjà partie de l'organisation.");
 
   // A new invitation to the same address replaces the previous one.
   await tx
@@ -141,14 +120,12 @@ export async function invite(tx: Tx, actor: { id: string; name: string }, orgId:
       orgId,
       email,
       orgRole: input.orgRole,
-      projects: input.projects,
-      accessExpiresAt: input.accessExpiresAt ? new Date(input.accessExpiresAt) : null,
       tokenHash: hash(token),
       invitedBy: actor.id,
       expiresAt: new Date(Date.now() + INVITE_DAYS * 86_400_000),
     })
     .returning();
-  await logActivity(tx, { orgId, actorId: actor.id, action: "invitation.sent", target: email, meta: { orgRole: input.orgRole, projects: input.projects } });
+  await logActivity(tx, { orgId, actorId: actor.id, action: "invitation.sent", target: email, meta: { orgRole: input.orgRole } });
   const link = `${APP_URL}/invite/${token}`;
   const [org] = await tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, orgId));
   const mail = await sendMail(
@@ -173,7 +150,7 @@ export async function revokeInvitation(tx: Tx, actorId: string, orgId: string, i
 export async function resendInvitation(tx: Tx, actor: { id: string; name: string }, orgId: string, id: string) {
   const [inv] = await tx.select().from(invitations).where(and(eq(invitations.id, id), eq(invitations.orgId, orgId)));
   if (!inv || inv.acceptedAt) throw notFound("Invitation introuvable.");
-  return invite(tx, actor, orgId, { email: inv.email, orgRole: inv.orgRole, projects: inv.projects, accessExpiresAt: inv.accessExpiresAt?.toISOString() });
+  return invite(tx, actor, orgId, { email: inv.email, orgRole: inv.orgRole === "admin" ? "admin" : "member" });
 }
 
 /** Public preview: only what the invitee needs to decide. Runs without a session. */
@@ -189,7 +166,6 @@ export async function previewInvitation(token: string) {
     org: row.org,
     inviter: row.inviter,
     email: row.inv.email,
-    projects: row.inv.projects.length,
     accepted: !!row.inv.acceptedAt,
     expired: row.inv.expiresAt < new Date(),
   };
@@ -211,14 +187,8 @@ export async function acceptInvitation(user: { id: string; email: string }, toke
 
     const [existing] = await tx.select().from(orgMembers).where(and(eq(orgMembers.orgId, inv.orgId), eq(orgMembers.userId, user.id)));
     if (!existing) await tx.insert(orgMembers).values({ orgId: inv.orgId, userId: user.id, role: inv.orgRole });
-    for (const p of inv.projects) {
-      await tx
-        .insert(projectMembers)
-        .values({ projectId: p.projectId, userId: user.id, orgId: inv.orgId, role: p.role, expiresAt: inv.accessExpiresAt })
-        .onConflictDoUpdate({ target: [projectMembers.projectId, projectMembers.userId], set: { role: p.role, expiresAt: inv.accessExpiresAt } });
-    }
     await tx.update(invitations).set({ acceptedAt: new Date(), acceptedBy: user.id }).where(eq(invitations.id, inv.id));
     await logActivity(tx, { orgId: inv.orgId, actorId: user.id, action: "invitation.accepted", target: inv.email });
-    return { orgId: inv.orgId, projectId: inv.projects.length === 1 ? inv.projects[0]!.projectId : undefined };
+    return { orgId: inv.orgId };
   });
 }

@@ -45,9 +45,8 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          if ((process.env.GOLIVE_SIGNUP ?? "open") !== "invite") return;
-          // Invite-only: the first account is the administrator, later ones need a pending invitation.
-          const [{ count } = { count: 0 }] = await db().select({ count: sql<number>`count(*)::int` }).from(users);
+          // Community: the first account creates the organization, later ones join by invitation.
+          const [{ count } = { count: 0 }] = await db().select({ count: sql<number>`count(*)::int` }).from(organizations);
           if (count === 0) return;
           const [inv] = await db()
             .select({ id: invitations.id })
@@ -56,9 +55,13 @@ export const auth = betterAuth({
           if (!inv) throw new APIError("FORBIDDEN", { message: "Les inscriptions se font sur invitation." });
         },
         after: async (user) => {
-          // Every account starts with its own organization.
+          // The first account owns the installation's organization. The advisory lock
+          // keeps two simultaneous first sign-ups from creating two organizations.
           await db().transaction(async (tx) => {
-            const [org] = await tx.insert(organizations).values({ name: `Espace de ${user.name.split(" ")[0] || user.name}` }).returning();
+            await tx.execute(sql`select pg_advisory_xact_lock(727275)`);
+            const [existing] = await tx.select({ id: organizations.id }).from(organizations).limit(1);
+            if (existing) return;
+            const [org] = await tx.insert(organizations).values({ name: "My organization" }).returning();
             await tx.insert(orgMembers).values({ orgId: org!.id, userId: user.id, role: "owner" });
             await logActivity(tx, { orgId: org!.id, actorId: user.id, action: "org.created", target: org!.name });
           });

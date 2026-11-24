@@ -311,7 +311,7 @@ function WaiveDialog({ open, onClose, r, onSave }: { open: boolean; onClose: () 
           Une dérogation transforme ce bloquant en Go conditionnel jusqu'à sa date d'échéance. Elle est nominative et visible dans le rapport.
         </p>
         <div className="grid grid-cols-[1fr_150px] gap-3">
-          <Field label="Valideur">
+          <Field label="Signataire">
             <Input required autoFocus value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Nom et fonction" />
           </Field>
           <Field label="Échéance">
