@@ -1,7 +1,9 @@
 import type { Component, ComponentKind, Link, Spec } from "@golive/spec";
 import { KINDS } from "@golive/spec";
 
+export * from "./repo";
 export * from "./web";
+import type { RepoObservation } from "./repo";
 import type { WebObservation } from "./web";
 
 /* ------------------------------------------------------------------ types */
@@ -38,6 +40,8 @@ export interface RuleContext {
   graph: Graph;
   /** Reference date (YYYY-MM-DD). Part of the input, so results stay reproducible. */
   asOf: string;
+  /** Layer 2 observation of the code repository, when a scan ran. */
+  repo?: RepoObservation;
   /** Layer 3 observation of the deployed target, when an audit ran. */
   web?: WebObservation;
 }
@@ -99,6 +103,7 @@ export const warn = (message: string, extra?: Partial<Finding>): Finding => ({ s
 export const na = (message = "Non applicable à ce projet."): Finding => ({ status: "na", message });
 export const evidence = (message: string, extra?: Partial<Finding>): Finding => ({ status: "evidence", message, ...extra });
 export const notRun = (message = "Aucune URL auditée pour l'instant."): Finding => ({ status: "not-run", message });
+export const notScanned = (): Finding => ({ status: "not-run", message: "Dépôt non analysé. Lancez golive check --repo . dans votre CI." });
 
 /* ---------------------------------------------------------------- graph */
 
