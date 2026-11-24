@@ -1,0 +1,20 @@
+{
+  "name": "golive",
+  "private": true,
+  "description": "GoLive Community: the open-source go/no-go gate before any production launch.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@11.0.8",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm --filter @golive/web dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "golive": "node apps/cli/dist/golive.js"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.13",
+    "typescript": "~5.9.3",
+    "@types/node": "^22.10.0"
+  }
+}
