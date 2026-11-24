@@ -1,0 +1,208 @@
+import type { SpecInput } from "./schema";
+
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  spec: SpecInput;
+}
+
+const base = { spec: "golive/v1" as const };
+
+export const TEMPLATES: Template[] = [
+  {
+    id: "blank",
+    name: "Projet vierge",
+    description: "Un canevas vide. Vous dessinez tout.",
+    spec: { ...base, project: { name: "Nouveau projet", type: "other", countries: [], audience: "public" } },
+  },
+  {
+    id: "wordpress-showcase",
+    name: "Site vitrine WordPress",
+    description: "WordPress derrière un CDN, MySQL, formulaire de contact.",
+    spec: {
+      ...base,
+      project: { name: "Site vitrine", type: "showcase", countries: ["SN"], languages: ["fr"], audience: "public" },
+      data: { personal: ["identity", "contact"], sensitive: [] },
+      features: ["forms", "analytics"],
+      actors: [
+        { id: "visitor", kind: "visitor" },
+        { id: "editor", kind: "admin", name: "Éditeurs" },
+      ],
+      components: [
+        { id: "cdn", kind: "cdn", tech: "cloudflare" },
+        { id: "site", kind: "frontend", tech: "wordpress@6.8", runtime: "php@8.1", hosting: { provider: "ovh", country: "FR" } },
+        { id: "db", kind: "database", tech: "mysql@8.0", hosting: { provider: "ovh", country: "FR" } },
+        { id: "stats", kind: "analytics", tech: "google-analytics" },
+      ],
+      links: [
+        { from: "visitor", to: "cdn", protocol: "https" },
+        { from: "cdn", to: "site", protocol: "https" },
+        { from: "editor", to: "site", protocol: "https", label: "/wp-admin" },
+        { from: "site", to: "db", protocol: "mysql", sensitivity: "personal" },
+        { from: "site", to: "stats", protocol: "https" },
+      ],
+      targets: {},
+      profiles: ["golive-core", "web-security", "operations", "sn-cdp"],
+      layout: { visitor: [0, 120], editor: [0, 300], cdn: [260, 120], site: [520, 200], db: [800, 200], stats: [800, 40] },
+    },
+  },
+  {
+    id: "ecommerce",
+    name: "E-commerce",
+    description: "Boutique Next.js, API, paiement Wave + Stripe, stockage médias.",
+    spec: {
+      ...base,
+      project: { name: "Boutique en ligne", type: "ecommerce", countries: ["SN", "FR"], languages: ["fr"], audience: "public", criticality: "financial" },
+      data: { personal: ["identity", "contact", "payment", "location"], sensitive: [] },
+      features: ["accounts", "admin", "payment", "newsletter", "email"],
+      actors: [
+        { id: "customer", kind: "user", name: "Clients" },
+        { id: "ops", kind: "admin", name: "Équipe boutique" },
+      ],
+      components: [
+        { id: "cdn", kind: "cdn", tech: "cloudflare" },
+        { id: "shop", kind: "frontend", tech: "nextjs@16", runtime: "nodejs@22" },
+        { id: "api", kind: "api", tech: "nestjs@11", runtime: "nodejs@22", hosting: { provider: "scaleway", country: "FR" } },
+        { id: "db", kind: "database", tech: "postgresql@17", hosting: { provider: "scaleway", country: "FR" } },
+        { id: "media", kind: "storage", tech: "s3", hosting: { provider: "scaleway", country: "FR" } },
+        { id: "wave", kind: "payment", tech: "wave" },
+        { id: "stripe", kind: "payment", tech: "stripe" },
+        { id: "mail", kind: "email", tech: "brevo" },
+      ],
+      links: [
+        { from: "customer", to: "cdn", protocol: "https" },
+        { from: "cdn", to: "shop", protocol: "https" },
+        { from: "shop", to: "api", protocol: "https", sensitivity: "personal" },
+        { from: "ops", to: "api", protocol: "https" },
+        { from: "api", to: "db", protocol: "postgres-tls", sensitivity: "personal" },
+        { from: "api", to: "media", protocol: "s3" },
+        { from: "api", to: "wave", protocol: "https" },
+        { from: "api", to: "stripe", protocol: "https" },
+        { from: "api", to: "mail", protocol: "https", sensitivity: "personal" },
+      ],
+      targets: {},
+      profiles: ["golive-core", "web-security", "operations", "payment", "sn-cdp", "eu-gdpr"],
+      layout: {
+        customer: [0, 140], ops: [0, 340], cdn: [250, 140], shop: [500, 140], api: [760, 240],
+        db: [1040, 160], media: [1040, 320], wave: [1040, 0], stripe: [1280, 0], mail: [1280, 320],
+      },
+    },
+  },
+  {
+    id: "saas-b2b",
+    name: "SaaS B2B",
+    description: "Application multi-tenant, SSO, files de tâches, supervision.",
+    spec: {
+      ...base,
+      project: { name: "SaaS B2B", type: "saas", countries: ["FR"], languages: ["fr", "en"], audience: "authenticated" },
+      data: { personal: ["identity", "contact", "usage"], sensitive: [] },
+      features: ["accounts", "admin", "payment", "uploads", "email", "ai"],
+      actors: [
+        { id: "member", kind: "user", name: "Utilisateurs clients" },
+        { id: "support", kind: "admin", name: "Support" },
+      ],
+      components: [
+        { id: "lb", kind: "load-balancer", tech: "caddy" },
+        { id: "app", kind: "frontend", tech: "nextjs@16", runtime: "nodejs@22" },
+        { id: "api", kind: "backend", tech: "fastapi", runtime: "python@3.12" },
+        { id: "worker", kind: "backend", name: "Workers", tech: "celery", runtime: "python@3.12" },
+        { id: "db", kind: "database", tech: "postgresql@16" },
+        { id: "cache", kind: "cache", tech: "valkey@8" },
+        { id: "files", kind: "storage", tech: "s3" },
+        { id: "sso", kind: "idp", tech: "keycloak" },
+        { id: "llm", kind: "ai", tech: "claude" },
+        { id: "obs", kind: "monitoring", tech: "grafana" },
+        { id: "bkp", kind: "backup", tech: "pgbackrest" },
+        { id: "vault", kind: "secrets", tech: "infisical" },
+      ],
+      zones: [{ id: "eu", name: "Cloud UE", provider: "hetzner", country: "DE", network: "private" }],
+      links: [
+        { from: "member", to: "lb", protocol: "https" },
+        { from: "support", to: "lb", protocol: "https" },
+        { from: "lb", to: "app", protocol: "https" },
+        { from: "app", to: "api", protocol: "https", sensitivity: "personal" },
+        { from: "api", to: "db", protocol: "postgres-tls", sensitivity: "personal" },
+        { from: "api", to: "cache", protocol: "rediss" },
+        { from: "worker", to: "cache", protocol: "rediss" },
+        { from: "worker", to: "db", protocol: "postgres-tls" },
+        { from: "api", to: "files", protocol: "s3" },
+        { from: "app", to: "sso", protocol: "https" },
+        { from: "worker", to: "llm", protocol: "https", sensitivity: "personal" },
+        { from: "bkp", to: "db", protocol: "postgres-tls" },
+        { from: "obs", to: "api", protocol: "https" },
+        { from: "api", to: "vault", protocol: "https" },
+      ],
+      targets: {},
+      profiles: ["golive-core", "web-security", "operations", "eu-gdpr"],
+      layout: {
+        member: [0, 120], support: [0, 300], lb: [240, 200], app: [480, 120], sso: [480, 320], api: [740, 200],
+        worker: [740, 420], db: [1020, 200], cache: [1020, 380], files: [1020, 40], llm: [1020, 540],
+        bkp: [1280, 200], obs: [740, 0], vault: [1280, 40],
+      },
+    },
+  },
+  {
+    id: "mobile-api",
+    name: "Application mobile + API",
+    description: "App Flutter, API Laravel, notifications, paiement Orange Money.",
+    spec: {
+      ...base,
+      project: { name: "App mobile", type: "mobile-api", countries: ["SN", "CI"], languages: ["fr"], audience: "authenticated" },
+      data: { personal: ["identity", "contact", "location", "payment"], sensitive: [] },
+      features: ["accounts", "payment", "uploads"],
+      actors: [{ id: "user", kind: "user", name: "Utilisateurs" }],
+      components: [
+        { id: "app", kind: "mobile", tech: "flutter@3" },
+        { id: "api", kind: "api", tech: "laravel@11", runtime: "php@8.2" },
+        { id: "db", kind: "database", tech: "mysql@8.0", exposure: "public" },
+        { id: "files", kind: "storage", tech: "s3" },
+        { id: "om", kind: "payment", tech: "orange-money" },
+      ],
+      links: [
+        { from: "user", to: "app", protocol: "internal" },
+        { from: "app", to: "api", protocol: "https", sensitivity: "personal" },
+        { from: "api", to: "db", protocol: "mysql", sensitivity: "personal" },
+        { from: "api", to: "files", protocol: "s3" },
+        { from: "api", to: "om", protocol: "https" },
+      ],
+      targets: {},
+      profiles: ["golive-core", "web-security", "operations", "payment", "sn-cdp"],
+      layout: { user: [0, 160], app: [240, 160], api: [500, 160], db: [780, 80], files: [780, 260], om: [780, -80] },
+    },
+  },
+  {
+    id: "public-service",
+    name: "Portail de service public",
+    description: "E-services citoyens hébergés au datacenter national.",
+    spec: {
+      ...base,
+      project: { name: "Portail e-services", type: "public-service", countries: ["SN"], languages: ["fr", "wo"], audience: "public", criticality: "public-service" },
+      data: { personal: ["identity", "contact"], sensitive: ["national-id"] },
+      features: ["accounts", "admin", "forms", "uploads", "email"],
+      zones: [{ id: "dc", name: "Datacenter national", provider: "senum", country: "SN", network: "private" }],
+      actors: [
+        { id: "citizen", kind: "visitor", name: "Citoyens" },
+        { id: "agent", kind: "admin", name: "Agents" },
+      ],
+      components: [
+        { id: "web", kind: "frontend", tech: "nextjs@16", runtime: "nodejs@22", zone: "dc" },
+        { id: "api", kind: "backend", tech: "nestjs@11", runtime: "nodejs@22", zone: "dc" },
+        { id: "db", kind: "database", tech: "postgresql@17", zone: "dc" },
+        { id: "docs", kind: "storage", tech: "minio", zone: "dc" },
+        { id: "mail", kind: "email", tech: "smtp" },
+      ],
+      links: [
+        { from: "citizen", to: "web", protocol: "https" },
+        { from: "agent", to: "web", protocol: "https" },
+        { from: "web", to: "api", protocol: "https", sensitivity: "personal" },
+        { from: "api", to: "db", protocol: "postgres-tls", sensitivity: "sensitive" },
+        { from: "api", to: "docs", protocol: "s3", sensitivity: "sensitive" },
+        { from: "api", to: "mail", protocol: "smtp" },
+      ],
+      targets: {},
+      profiles: ["golive-core", "web-security", "operations", "accessibility", "sn-cdp"],
+      layout: { citizen: [0, 100], agent: [0, 300], web: [260, 200], api: [520, 200], db: [800, 120], docs: [800, 300], mail: [800, 460] },
+    },
+  },
+];
