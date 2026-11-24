@@ -65,6 +65,8 @@ export function renderReport(r: Report, opts: { all: boolean }): string {
   );
   const stale = r.packs.filter((p) => p.stale);
   if (stale.length) out.push(pc.yellow(`! Packs légaux sans revue juridique récente : ${stale.map((p) => p.name).join(", ")}. À valider par un juriste.`));
+  if (r.coverage.repo) out.push(pc.dim(`✓ Dépôt analysé : ${r.coverage.repo.files} fichiers (${r.coverage.repo.tools.join(", ")}).`));
+  else out.push(pc.dim("○ Dépôt non analysé. Ajoutez --repo pour la couche 2."));
   if (!r.coverage.layers.includes(3)) out.push(pc.dim("○ Site non audité. Ajoutez --url <url> ou --audit pour la couche 3."));
   out.push(pc.dim(`Empreinte ${r.fingerprint} · moteur ${r.engine} · référence ${r.asOf} · rapport local non signé`));
   return out.join("\n");

@@ -18,8 +18,9 @@
     "@golive/packs": "workspace:*",
     "@golive/packs-sdk": "workspace:*",
     "@golive/probe": "workspace:*",
+    "@golive/scanner": "workspace:*",
     "@golive/spec": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "tsx": "^4.23.15"
   }
 }

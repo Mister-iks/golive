@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { Command, Option } from "commander";
 import { COMMUNITY_PACKS, ENGINE_VERSION, evaluate, type Report } from "@golive/engine";
 import { probe } from "@golive/probe";
+import { scanRepo } from "@golive/scanner";
 import { TEMPLATES, parseSpec, stringifySpec, validateSpec, type Spec } from "@golive/spec";
 import { renderReport, renderIssues, c } from "./render";
 
@@ -33,6 +34,8 @@ program
   .argument("[file]", "chemin du golive.yaml", "golive.yaml")
   .option("-u, --url <url>", "audite aussi cette URL (couche 3)")
   .option("-a, --audit", "audite la cible déclarée dans targets (prod, sinon preprod)")
+  .option("-r, --repo [path]", "analyse aussi le dépôt de code (couche 2 : secrets, dépendances, conteneurs)")
+  .option("--offline", "n'interroge pas la base de vulnérabilités en ligne (osv.dev)")
   .addOption(new Option("-e, --env <env>", "environnement de l'URL auditée").choices(["prod", "preprod"]))
   .addOption(new Option("--format <format>", "format de sortie").choices(["pretty", "json", "markdown"]).default("pretty"))
   .option("-o, --output <file>", "écrit aussi le rapport JSON dans ce fichier")
@@ -50,7 +53,14 @@ program
       if (opts.format === "pretty") process.stderr.write(c.dim(`Audit passif de ${target}…\n`));
       web = await probe(target, { env, allowPrivate: opts.allowPrivate || process.env.GOLIVE_ALLOW_PRIVATE === "1" });
     }
-    const report = evaluate(spec, { asOf: opts.asOf, web });
+    let repo;
+    if (opts.repo) {
+      const path = opts.repo === true ? "." : opts.repo;
+      if (opts.format === "pretty") process.stderr.write(c.dim(`Analyse du dépôt ${path}…
+`));
+      repo = await scanRepo(path, { offline: opts.offline });
+    }
+    const report = evaluate(spec, { asOf: opts.asOf, repo, web });
 
     if (opts.output) writeFileSync(opts.output, JSON.stringify(report, null, 2));
     if (opts.format === "json") console.log(JSON.stringify(report, null, 2));
@@ -94,6 +104,8 @@ program
 interface CheckOptions {
   url?: string;
   audit?: boolean;
+  repo?: string | true;
+  offline?: boolean;
   env?: "prod" | "preprod";
   format: "pretty" | "json" | "markdown";
   output?: string;
