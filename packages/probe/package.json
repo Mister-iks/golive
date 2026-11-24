@@ -1,0 +1,15 @@
+{
+  "name": "@golive/probe",
+  "version": "0.1.0",
+  "description": "Passive, SSRF-safe web observation for GoLive layer 3 checks (Node.js).",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p .", "test": "vitest run" },
+  "dependencies": {
+    "@golive/packs-sdk": "workspace:*",
+    "node-html-parser": "^9.0.7",
+    "undici": "^8.13.1"
+  },
+  "devDependencies": { "vitest": "^4.1.12" }
+}
