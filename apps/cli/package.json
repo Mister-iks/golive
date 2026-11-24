@@ -26,7 +26,7 @@
   ],
   "type": "module",
   "bin": {
-    "golive": "./dist/golive.js"
+    "golive": "dist/golive.js"
   },
   "files": [
     "dist",
