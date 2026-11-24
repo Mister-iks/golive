@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { TEMPLATES, parseSpec, stringifySpec, validateSpec, type Spec } from "@golive/spec";
-import { COMMUNITY_PACKS, evaluate } from "../src";
+import { COMMUNITY_PACKS, evaluate, type RepoObservation } from "../src";
+
+function scan(partial: Partial<RepoObservation> = {}): RepoObservation {
+  return {
+    root: ".",
+    scannedAt: "2026-11-24T10:00:00.000Z",
+    files: 120,
+    tools: [{ name: "golive-secrets", used: true }],
+    secrets: [],
+    dependencies: { checked: true, manifests: [{ file: "package-lock.json", ecosystem: "npm", packages: 200, lockfile: true }], vulnerabilities: [] },
+    containerFiles: [],
+    containers: [],
+    ...partial,
+  };
+}
 
 const AS_OF = "2026-11-24";
 
@@ -132,5 +146,51 @@ describe("engine", () => {
   it("legal packs without a review date are flagged as stale", () => {
     const report = evaluate(load("public-service"), { asOf: AS_OF });
     expect(report.packs.find((p) => p.id === "sn-cdp")?.stale).toBe(true);
+  });
+
+  describe("layer 2", () => {
+    it("a secret committed to the repository is a blocker and gives No-Go", () => {
+      const repo = scan({ secrets: [{ file: "src/config.ts", line: 3, rule: "aws-access-key", description: "Clé d'accès AWS" }] });
+      const report = evaluate(load("saas-b2b"), { asOf: AS_OF, repo });
+      const r = report.results.find((x) => x.ruleId === "sec.code.secrets")!;
+      expect(r.status).toBe("fail");
+      expect(r.blocking).toBe(true);
+      expect(report.verdict.decision).toBe("no-go");
+      expect(report.coverage.layers).toContain(2);
+    });
+
+    it("maps vulnerability severity to finding severity", () => {
+      const repo = scan({
+        dependencies: {
+          checked: true,
+          manifests: [{ file: "package-lock.json", ecosystem: "npm", packages: 10, lockfile: true }],
+          vulnerabilities: [
+            { id: "GHSA-1", aliases: ["CVE-2026-1"], package: "a", version: "1.0.0", ecosystem: "npm", severity: "critical", summary: "RCE", fixed: "1.0.1", file: "package-lock.json" },
+            { id: "GHSA-2", aliases: [], package: "b", version: "2.0.0", ecosystem: "npm", severity: "medium", summary: "", file: "package-lock.json" },
+          ],
+        },
+      });
+      const r = evaluate(load("saas-b2b"), { asOf: AS_OF, repo }).results.find((x) => x.ruleId === "sec.app.dependency-scan")!;
+      expect(r.findings.map((f) => f.severity)).toEqual(["blocker", "minor"]);
+      expect(r.findings[0]?.message).toContain("CVE-2026-1");
+      expect(r.blocking).toBe(true);
+    });
+
+    it("flags a datastore published by compose while the architecture declares it private", () => {
+      const repo = scan({
+        containerFiles: ["docker-compose.yml"],
+        containers: [{ file: "docker-compose.yml", check: "published-datastore", message: "Le service db publie le port 5432.", subject: "db" }],
+      });
+      const r = evaluate(load("saas-b2b"), { asOf: AS_OF, repo }).results.find((x) => x.ruleId === "core.drift.published-datastore")!;
+      expect(r.status).toBe("fail");
+      expect(r.findings[0]?.message).toContain("déclare pourtant privée");
+    });
+
+    it("layer 2 rules are not-run without a scan, and dependency scanning asks for proof", () => {
+      const report = evaluate(load("saas-b2b"), { asOf: AS_OF });
+      expect(report.results.find((x) => x.ruleId === "sec.code.secrets")?.status).toBe("not-run");
+      expect(report.results.find((x) => x.ruleId === "sec.app.dependency-scan")?.status).toBe("evidence");
+      expect(report.coverage.layers).not.toContain(2);
+    });
   });
 });

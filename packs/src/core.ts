@@ -10,7 +10,7 @@ import {
   warn,
   type Finding,
 } from "@golive/packs-sdk";
-import { daysBetween, list, withWeb } from "./util";
+import { daysBetween, isLocalFile, list, withRepo, withWeb } from "./util";
 
 const ENDOFLIFE = { label: "endoflife.date", url: "https://endoflife.date" };
 
@@ -248,6 +248,52 @@ export const core = definePack({
           ? missing.map((c) => warn(`${ctx.graph.label(c.id)} : version de ${c.tech} non précisée.`, { target: c.id }))
           : pass("Les technologies suivies ont une version.");
       },
+    }),
+
+    /* ---------------------------------------------------------- layer 2 */
+
+    defineRule({
+      id: "core.drift.published-datastore",
+      title: "Aucune base publiée par les fichiers de déploiement",
+      why: "Un port de base de données publié par Docker contourne souvent le pare-feu de l'hôte : l'architecture déclarée privée ne l'est plus.",
+      layer: 2,
+      category: "architecture",
+      severity: "blocker",
+      method: "auto",
+      source: { label: "Docker, Packet filtering and firewalls", url: "https://docs.docker.com/engine/network/packet-filtering-firewalls/" },
+      fix: "Retirez la publication du port, ou liez-le à 127.0.0.1 (127.0.0.1:5432:5432). Les services se joignent par le réseau interne de compose.",
+      check: (ctx) =>
+        withRepo(ctx, (repo) => {
+          const hits = repo.containers.filter((c) => c.check === "published-datastore");
+          if (!hits.length) return pass("Aucun stockage de données publié sur l'hôte.");
+          return hits.map((c) => {
+            const local = isLocalFile(c.file);
+            const declaredPrivate = dataStores(ctx).some((d) => ctx.graph.exposure(d) !== "public");
+            const drift = declaredPrivate && !local ? " L'architecture la déclare pourtant privée." : "";
+            return (local ? warn : fail)(`${c.message}${drift} (${c.file})`, { observed: c.subject, severity: local ? "minor" : "blocker" });
+          });
+        }),
+    }),
+
+    defineRule({
+      id: "core.code.lockfiles",
+      title: "Dépendances verrouillées",
+      why: "Sans lockfile, deux déploiements du même code peuvent embarquer des versions différentes, parfois vulnérables.",
+      layer: 2,
+      category: "quality",
+      severity: "minor",
+      method: "auto",
+      source: { label: "OpenSSF Scorecard, Pinned-Dependencies", url: "https://github.com/ossf/scorecard/blob/main/docs/checks.md#pinned-dependencies" },
+      fix: "Générez et versionnez le lockfile (package-lock.json, pnpm-lock.yaml, composer.lock, poetry.lock…).",
+      check: (ctx) =>
+        withRepo(ctx, (repo) => {
+          const manifests = repo.dependencies.manifests;
+          if (!manifests.length) return na("Aucun gestionnaire de dépendances détecté.");
+          const missing = manifests.filter((m) => !m.lockfile);
+          return missing.length
+            ? missing.map((m) => warn(`${m.file} n'a pas de lockfile.`, { observed: m.ecosystem }))
+            : pass(`${manifests.length} lockfile${manifests.length > 1 ? "s" : ""} versionné${manifests.length > 1 ? "s" : ""}.`);
+        }),
     }),
 
     /* ---------------------------------------------------------- layer 3 */

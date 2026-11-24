@@ -6,6 +6,7 @@ import {
   type Layer,
   type Method,
   type Pack,
+  type RepoObservation,
   type Rule,
   type RuleContext,
   type Severity,
@@ -50,7 +51,11 @@ export interface Report {
   threshold: number;
   verdict: { decision: Decision; reasons: string[] };
   counts: Record<Status, number> & { blocking: number; waived: number };
-  coverage: { layers: Layer[]; web?: { url: string; env: "prod" | "preprod"; fetchedAt: string } };
+  coverage: {
+    layers: Layer[];
+    repo?: { root: string; scannedAt: string; files: number; tools: string[] };
+    web?: { url: string; env: "prod" | "preprod"; fetchedAt: string };
+  };
 }
 
 export interface EvaluateOptions {
@@ -58,6 +63,8 @@ export interface EvaluateOptions {
   asOf?: string;
   /** Pack registry. Defaults to the community packs. */
   registry?: Pack[];
+  /** Layer 2 observation of the repository. */
+  repo?: RepoObservation;
   /** Layer 3 observation. */
   web?: WebObservation;
 }
@@ -103,7 +110,7 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
   const asOf = options.asOf ?? new Date().toISOString().slice(0, 10);
   const registry = options.registry ?? COMMUNITY_PACKS;
   const packs = selectPacks(spec, registry);
-  const ctx: RuleContext = { spec, graph: buildGraph(spec), asOf, web: options.web };
+  const ctx: RuleContext = { spec, graph: buildGraph(spec), asOf, repo: options.repo, web: options.web };
 
   const results: RuleResult[] = [];
   for (const pack of packs) {
@@ -121,11 +128,17 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
   const threshold = spec.project.criticality !== "standard" || spec.project.type === "public-service" ? 80 : 70;
   const verdict = decide(results, score.global, threshold);
 
-  // A layer is covered only when its input really exists (layer 3 needs a web observation).
+  // A layer is covered only when its input really exists (a repo scan for 2, a web observation for 3).
   const layers = [
     ...new Set(
       results
-        .filter((r) => r.status !== "not-run" && r.status !== "na" && (r.layer !== 3 || !!options.web?.ok))
+        .filter(
+          (r) =>
+            r.status !== "not-run" &&
+            r.status !== "na" &&
+            (r.layer !== 2 || !!options.repo) &&
+            (r.layer !== 3 || !!options.web?.ok),
+        )
         .map((r) => r.layer),
     ),
   ].sort() as Layer[];
@@ -133,7 +146,13 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
   return {
     engine: ENGINE_VERSION,
     asOf,
-    fingerprint: fingerprint({ spec: { ...spec, layout: undefined }, packs: packs.map((p) => `${p.id}@${p.version}`), asOf, web: stripTiming(options.web) }),
+    fingerprint: fingerprint({
+      spec: { ...spec, layout: undefined },
+      packs: packs.map((p) => `${p.id}@${p.version}`),
+      asOf,
+      repo: options.repo ? { ...options.repo, scannedAt: undefined, root: undefined } : undefined,
+      web: stripTiming(options.web),
+    }),
     project: { name: spec.project.name, type: spec.project.type },
     packs: packs.map((p) => ({
       id: p.id,
@@ -149,6 +168,9 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
     counts,
     coverage: {
       layers,
+      repo: options.repo
+        ? { root: options.repo.root, scannedAt: options.repo.scannedAt, files: options.repo.files, tools: options.repo.tools.filter((t) => t.used).map((t) => t.name) }
+        : undefined,
       web: options.web ? { url: options.web.url, env: options.web.env, fetchedAt: options.web.fetchedAt } : undefined,
     },
   };
@@ -310,4 +332,4 @@ export function findingsByTarget(report: Report) {
 }
 
 export { COMMUNITY_PACKS, PROFILE_ALIASES };
-export type { Category, Finding, Layer, Pack, Rule, Severity, Status, WebObservation };
+export type { Category, Finding, Layer, Pack, RepoObservation, Rule, Severity, Status, WebObservation };

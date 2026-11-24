@@ -5,11 +5,12 @@ import {
   fail,
   hasFeature,
   isCritical,
+  na,
   pass,
   warn,
   type Finding,
 } from "@golive/packs-sdk";
-import { list, withWeb } from "./util";
+import { list, withRepo, withWeb } from "./util";
 
 const HEADERS = { label: "OWASP Secure Headers Project", url: "https://owasp.org/www-project-secure-headers/" };
 const ASVS = { label: "OWASP ASVS 5.0", url: "https://owasp.org/www-project-application-security-verification-standard/" };
@@ -311,18 +312,85 @@ export const webSecurity = definePack({
       check: () => evidence("Attestez la limitation de débit et la protection anti-robot des formulaires."),
     }),
 
+    /* ------------------------------------------------------- layer 2 */
+
+    defineRule({
+      id: "sec.code.secrets",
+      title: "Aucun secret dans le code",
+      why: "Une clé versionnée finit tôt ou tard dans une sauvegarde, un fork ou un dépôt public : elle doit être considérée comme compromise.",
+      layer: 2,
+      category: "security",
+      severity: "blocker",
+      method: "auto",
+      source: { label: "OWASP Secrets Management Cheat Sheet", url: "https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html" },
+      fix: "Révoquez la clé, retirez-la de l'historique git, puis chargez-la depuis un coffre ou des variables d'environnement non versionnées.",
+      check: (ctx) =>
+        withRepo(ctx, (repo) =>
+          repo.secrets.length
+            ? repo.secrets.map((f) => fail(`${f.description} dans ${f.file}:${f.line}.`, { observed: f.rule }))
+            : pass(`Aucun secret détecté dans ${repo.files} fichiers.`),
+        ),
+    }),
+
     defineRule({
       id: "sec.app.dependency-scan",
-      title: "Dépendances analysées en continu",
+      title: "Dépendances sans vulnérabilité connue",
       why: "La majorité du code d'une application vient de dépendances ; une faille connue y est exploitée en quelques jours.",
       layer: 2,
       category: "security",
       severity: "major",
-      method: "evidence",
+      method: "hybrid",
       source: { label: "OWASP Top 10 A06: Vulnerable and Outdated Components", url: "https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/" },
-      fix: "Ajoutez OSV-Scanner ou Trivy à la CI et bloquez les vulnérabilités critiques.",
-      applies: (ctx) => ctx.graph.has("frontend", "backend", "api", "mobile"),
-      check: () => evidence("Attestez qu'un scanner de dépendances tourne dans la CI (OSV-Scanner, Trivy, Dependabot…)."),
+      fix: "Mettez à jour les paquets concernés vers la version corrigée, puis gardez golive check --repo dans la CI.",
+      applies: (ctx) => ctx.graph.has("frontend", "backend", "api", "mobile") || !!ctx.repo?.dependencies.manifests.length,
+      check: (ctx) => {
+        const repo = ctx.repo;
+        if (!repo) return evidence("Lancez golive check --repo . dans la CI, ou attestez qu'un autre scanner de dépendances y tourne.");
+        const deps = repo.dependencies;
+        if (!deps.checked) return evidence(`${deps.error ?? "Vulnérabilités non vérifiées."} Attestez un autre scanner ou relancez en ligne.`);
+        if (!deps.manifests.some((m) => m.packages > 0)) return na("Aucun lockfile trouvé dans le dépôt.");
+        if (!deps.vulnerabilities.length) {
+          const n = deps.manifests.reduce((a, m) => a + m.packages, 0);
+          return pass(`Aucune vulnérabilité connue parmi ${n} paquets.`);
+        }
+        const SEV = { critical: "blocker", high: "major", medium: "minor", low: "info", unknown: "minor" } as const;
+        const shown = deps.vulnerabilities.slice(0, 40).map((v) =>
+          (v.severity === "critical" || v.severity === "high" ? fail : warn)(
+            `${v.package} ${v.version} : ${v.aliases.find((a) => a.startsWith("CVE-")) ?? v.id}${v.summary ? `, ${v.summary}` : ""}${v.fixed ? ` (corrigé en ${v.fixed})` : ""}.`,
+            { observed: v.id, severity: SEV[v.severity] },
+          ),
+        );
+        const rest = deps.vulnerabilities.length - shown.length;
+        return rest > 0 ? [...shown, warn(`${rest} autres vulnérabilités, voir le rapport JSON.`, { severity: "info" })] : shown;
+      },
+    }),
+
+    defineRule({
+      id: "sec.code.containers",
+      title: "Images de conteneur durcies",
+      why: "Un conteneur qui tourne en root ou embarque un secret transforme la moindre faille applicative en compromission de l'hôte.",
+      layer: 2,
+      category: "security",
+      severity: "major",
+      method: "auto",
+      source: { label: "CIS Docker Benchmark ; OWASP Docker Security Cheat Sheet", url: "https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html" },
+      fix: "Ajoutez un utilisateur dédié (USER), épinglez les images de base par version, passez les secrets au démarrage et jamais dans l'image.",
+      check: (ctx) =>
+        withRepo(ctx, (repo) => {
+          const SEV = { "secret-in-image": "blocker", "root-user": "major", privileged: "major", "unpinned-image": "minor" } as const;
+          const issues = repo.containers.filter((c) => c.check !== "published-datastore");
+          if (!issues.length) {
+            return repo.containerFiles.length
+              ? pass(`${repo.containerFiles.length} fichier${repo.containerFiles.length > 1 ? "s" : ""} de conteneur sans problème.`)
+              : na("Aucun Dockerfile ni fichier compose.");
+          }
+          return issues.map((c) =>
+            (c.check === "unpinned-image" ? warn : fail)(`${c.message} (${c.file}${c.line ? `:${c.line}` : ""})`, {
+              observed: c.check,
+              severity: SEV[c.check as keyof typeof SEV],
+            }),
+          );
+        }),
     }),
 
     defineRule({
