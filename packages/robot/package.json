@@ -1,0 +1,23 @@
+{
+  "name": "@golive/robot",
+  "version": "0.1.0",
+  "description": "Multi-page audit robot for PcyBox GoLive: real browser crawl, accessibility, performance, privacy.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@golive/packs-sdk": "workspace:*",
+    "@golive/probe": "workspace:*",
+    "playwright-core": "1.65.1"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.12"
+  }
+}
