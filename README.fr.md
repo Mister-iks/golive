@@ -28,7 +28,8 @@ PcyBox GoLive les transforme en **règles versionnées et déterministes**, conf
 - **Preuves et dérogations** : ce qu'un robot ne peut pas vérifier (test de restauration, déclaration CDP, contrats de sous-traitance…) est attesté par une personne nommée. Une dérogation signée transforme un bloquant en Go conditionnel jusqu'à son échéance.
 - **Kanban de remédiation** : une tâche par écart, sans doublon, fermée automatiquement quand l'audit constate la correction, rouverte en cas de régression.
 - **Rapport** Go / No-Go imprimable (PDF) et export JSON.
-- **CLI** `golive check` pour la CI, qui sort en erreur sur un No-Go.
+- **Analyse du dépôt** : secrets versionnés, dépendances vulnérables (base OSV), Dockerfile en root, bases publiées par compose. Utilise aussi Gitleaks s'il est installé.
+- **CLI** `golive check --repo .` pour la CI, qui sort en erreur sur un No-Go.
 
 ## Démarrer
 
@@ -49,7 +50,7 @@ En ligne de commande :
 ```bash
 pnpm --filter @golive/cli build
 node apps/cli/dist/golive.js init --template public-service
-node apps/cli/dist/golive.js check --url https://preprod.exemple.sn --env preprod
+node apps/cli/dist/golive.js check --repo . --url https://preprod.exemple.sn --env preprod
 ```
 
 ## Avertissement

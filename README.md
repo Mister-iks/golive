@@ -35,7 +35,8 @@ PcyBox GoLive turns them into **versioned, deterministic rules** that run agains
 | **Proofs and waivers** | What a robot cannot verify (restore test, CDP filing, DPA…) is attested by a named person. A signed waiver turns a blocker into a Conditional Go until it expires. |
 | **Remediation board** | One task per open issue, no duplicates, closed automatically when the audit sees the fix, reopened on regression. |
 | **Report** | Printable Go / No-Go report (PDF) and JSON export. |
-| **CLI** | `golive check` in your CI. Exits non-zero on No-Go. |
+| **Repository scan** | Committed secrets, vulnerable dependencies (OSV database, npm, PyPI, Go, Packagist, RubyGems, crates.io), Dockerfiles running as root, datastores published by compose. Uses Gitleaks too when installed. |
+| **CLI** | `golive check --repo .` in your CI. Exits non-zero on No-Go. |
 
 ## Quick start
 
@@ -63,7 +64,8 @@ Requires Node.js 22+ and pnpm 11+.
 ```bash
 pnpm --filter @golive/cli build
 node apps/cli/dist/golive.js init --template ecommerce
-node apps/cli/dist/golive.js check                      # layers 1 (architecture)
+node apps/cli/dist/golive.js check                      # layer 1 (architecture)
+node apps/cli/dist/golive.js check --repo .             # + layer 2 (secrets, dependencies, containers)
 node apps/cli/dist/golive.js check --url https://example.com --env preprod
 node apps/cli/dist/golive.js check --format markdown    # for a PR comment
 node apps/cli/dist/golive.js rules                      # browse the catalogue
@@ -114,6 +116,8 @@ Full reference: [docs/spec.md](docs/spec.md).
 3. Score per category and overall, weighted by severity (blocker 10, major 5, minor 2, info 1).
 4. **No-Go** if any blocker is open, or the score is under the threshold (70, or 80 for financial, health and public services). **Conditional Go** if every open blocker is covered by a valid waiver. Otherwise **Go**.
 
+`--repo` reads files only and never runs project code. Secret values are never stored, only their location. Dependency versions are sent to [osv.dev](https://osv.dev) to look up known vulnerabilities; use `--offline` to skip that step.
+
 The verdict never depends on an AI. Legal findings always carry a "to be validated by a lawyer" notice: PcyBox GoLive flags, cites and points, it does not give legal advice.
 
 ## Repository layout
@@ -145,8 +149,8 @@ Rule of thumb: everything needed to **verify** stays open; what saves a **team**
 
 ## Roadmap
 
-- **Now**: Studio, spec, engine, 7 packs, live audit, CLI, report.
-- **Next**: layer 2 (repository scan with OSV-Scanner, Gitleaks, Trivy), PostgreSQL storage with multi-user workspaces and invitations, English UI, GitHub Action.
+- **Now**: Studio, spec, engine, 7 packs, repository scan, live audit, CLI, report.
+- **Next**: PostgreSQL storage with multi-user workspaces and invitations, multi-page audit robot (Playwright, Lighthouse, axe-core), English UI, GitHub Action.
 - **Later**: Premium copilot, signed reports and badge, Gov edition.
 
 ## Contributing
