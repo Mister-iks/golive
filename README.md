@@ -31,7 +31,8 @@ PcyBox GoLive turns them into **versioned, deterministic rules** that run agains
 | **GoLive Spec** | Everything is saved in a plain `golive.yaml` you version with your code. The Studio and the file stay in sync both ways. |
 | **Deterministic engine** | Same `golive.yaml` + same pack versions + same site state = same verdict, with a reproducible fingerprint. No AI decides. |
 | **Compliance packs** | Core, Web security (OWASP), Operations, Accessibility (WCAG 2.2), Payment, Senegal (CDP), EU and France (GDPR). Every rule cites its source. |
-| **Live site audit** | Passive checks of a deployed URL: TLS, security headers, cookies, trackers before consent, legal pages, indexing, accessibility basics. SSRF-safe. |
+| **Live site audit** | Enter a URL and get a real audit in the background. *Quick*: passive checks of the home page (TLS, security headers, cookies, legal pages, indexing). *Full*: a real Chromium browses up to 20 pages like a visitor and checks accessibility with axe-core (WCAG 2.2 AA), broken links, Core Web Vitals, mixed content and trackers loaded before consent. SSRF-safe, domain ownership proven by DNS or file first. |
+| **Teams** | Accounts, organizations, roles (owner, admin, member, guest) and per-project roles (manager, editor, contributor, validator, reader). Invitations by e-mail valid 7 days, optional access end date, append-only activity log. Tenant isolation enforced by PostgreSQL row level security. |
 | **Proofs and waivers** | What a robot cannot verify (restore test, CDP filing, DPA…) is attested by a named person. A signed waiver turns a blocker into a Conditional Go until it expires. |
 | **Remediation board** | One task per open issue, no duplicates, closed automatically when the audit sees the fix, reopened on regression. |
 | **Report** | Printable Go / No-Go report (PDF) and JSON export. |
@@ -40,24 +41,28 @@ PcyBox GoLive turns them into **versioned, deterministic rules** that run agains
 
 ## Quick start
 
-### Self-hosted app
+### Self-hosted
 
 ```bash
+cp .env.example .env
+# set BETTER_AUTH_SECRET in .env, for example with: openssl rand -base64 32
 docker compose up --build
-# open http://localhost:3000
+# open http://localhost:3000 and create the first account
 ```
 
-No external account, no database to operate: projects are stored in your browser and exported as `golive.yaml`.
+The stack is PostgreSQL, the web app and the audit worker (official Playwright image). No external account or SaaS dependency. Without `SMTP_URL`, invitation links are shown in the interface so you can pass them on yourself.
 
 ### From source
 
 ```bash
 pnpm install
-pnpm dev            # web app on http://localhost:3000
-pnpm test           # engine and probe tests
+cp .env.example .env        # point DATABASE_URL to a PostgreSQL 15+ database
+pnpm db:migrate
+pnpm dev                    # web app on http://localhost:3000 and the audit worker
+pnpm test                   # set DATABASE_URL_TEST to also run the row level security tests
 ```
 
-Requires Node.js 22+ and pnpm 11+.
+Requires Node.js 22+ and pnpm 11+. Locally the robot uses the bundled Chromium if present, otherwise your installed Chrome or Edge.
 
 ### CLI
 
@@ -124,13 +129,17 @@ The verdict never depends on an AI. Legal findings always carry a "to be validat
 
 ```
 apps/
-  web/            Next.js app: Studio, checks, board, report (AGPL-3.0)
+  web/            Next.js app and API: Studio, checks, board, report, teams (AGPL-3.0)
+  worker/         Audit worker: runs queued audits, applies migrations (AGPL-3.0)
   cli/            golive command line (Apache-2.0)
 packages/
   spec/           GoLive Spec schema, parser, catalogue, templates (Apache-2.0)
   packs-sdk/      Rule and pack SDK (Apache-2.0)
-  engine/         Deterministic evaluation, score, verdict (AGPL-3.0)
+  engine/         Deterministic evaluation, score, verdict, task reconciliation (AGPL-3.0)
   probe/          Passive, SSRF-safe web observation (AGPL-3.0)
+  robot/          Multi-page browser audit: axe-core, vitals, links, trackers (AGPL-3.0)
+  scanner/        Repository scan: secrets, dependencies, containers (AGPL-3.0)
+  db/             PostgreSQL schema, row level security, job queue (AGPL-3.0)
 packs/            Community compliance packs (Apache-2.0)
 ```
 
@@ -149,8 +158,8 @@ Rule of thumb: everything needed to **verify** stays open; what saves a **team**
 
 ## Roadmap
 
-- **Now**: Studio, spec, engine, 7 packs, repository scan, live audit, CLI, report.
-- **Next**: PostgreSQL storage with multi-user workspaces and invitations, multi-page audit robot (Playwright, Lighthouse, axe-core), English UI, GitHub Action.
+- **Now**: Studio, spec, engine, 7 packs, repository scan, multi-page audit robot, teams and invitations on PostgreSQL, CLI, report.
+- **Next**: two-factor authentication enforced for admins and validators, Lighthouse scores, English UI, GitHub Action, Helm chart.
 - **Later**: Premium copilot, signed reports and badge, Gov edition.
 
 ## Contributing

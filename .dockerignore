@@ -6,3 +6,7 @@
 *.md
 !README.md
 docs
+.dev
+.env
+.env.*
+!.env.example

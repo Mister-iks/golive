@@ -1,15 +1,76 @@
+# PcyBox GoLive Community.
+#   cp .env.example .env    then set BETTER_AUTH_SECRET (openssl rand -base64 32)
+#   docker compose up --build
+# Open http://localhost:3000 and create the first account.
+
+x-env: &env
+  DATABASE_URL: postgres://golive:${POSTGRES_PASSWORD:-golive}@db:5432/golive
+  GOLIVE_URL: ${GOLIVE_URL:-http://localhost:3000}
+  GOLIVE_ALLOW_PRIVATE: ${GOLIVE_ALLOW_PRIVATE:-0}
+  GOLIVE_SKIP_DOMAIN_VERIFICATION: ${GOLIVE_SKIP_DOMAIN_VERIFICATION:-0}
+
 services:
-  golive:
-    build: .
-    image: golive-community:local
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: golive
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-golive}
+      POSTGRES_DB: golive
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U golive -d golive"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Applies database migrations once, before the application starts.
+  migrate:
+    build: { context: ., target: worker }
+    image: golive-worker:local
+    command: ["node", "dist/worker.js", "--migrate-only"]
+    environment: *env
+    depends_on:
+      db: { condition: service_healthy }
+
+  web:
+    build: { context: ., target: web }
+    image: golive-web:local
     ports:
       - "3000:3000"
     environment:
-      # Set to "1" only to audit an internal pre-production reachable on a private network.
-      GOLIVE_ALLOW_PRIVATE: "0"
+      <<: *env
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env (openssl rand -base64 32)}
+      GOLIVE_SIGNUP: ${GOLIVE_SIGNUP:-open}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     read_only: true
     tmpfs:
       - /tmp
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+  worker:
+    image: golive-worker:local
+    environment:
+      <<: *env
+      GOLIVE_MIGRATE: "0"
+      GOLIVE_MAX_PAGES: ${GOLIVE_MAX_PAGES:-20}
+      GOLIVE_WORKER_CONCURRENCY: ${GOLIVE_WORKER_CONCURRENCY:-2}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    # Chromium needs shared memory; the robot never needs to write outside /tmp.
+    shm_size: 1gb
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  pgdata:

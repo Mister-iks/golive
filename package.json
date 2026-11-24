@@ -6,7 +6,8 @@
   "packageManager": "pnpm@11.0.8",
   "engines": { "node": ">=22" },
   "scripts": {
-    "dev": "pnpm --filter @golive/web dev",
+    "dev": "turbo run dev --filter=@golive/web --filter=@golive/worker",
+    "db:migrate": "pnpm --filter @golive/worker exec tsx --env-file=../../.env src/main.ts --migrate-only",
     "build": "turbo run build",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

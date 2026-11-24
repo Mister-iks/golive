@@ -14,3 +14,5 @@ AGENTS.md
 CLAUDE.md
 .claude
 next-env.d.ts
+.dev/
+!.env.example

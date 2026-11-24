@@ -24,7 +24,8 @@ PcyBox GoLive les transforme en **règles versionnées et déterministes**, conf
 - **GoLive Spec** : tout est enregistré dans un `golive.yaml` versionné avec votre code, synchronisé dans les deux sens avec le Studio.
 - **Moteur déterministe** : même `golive.yaml`, mêmes versions de packs, même état du site, même verdict, avec une empreinte reproductible. Aucune IA ne décide.
 - **Packs de conformité** : Socle, Sécurité web (OWASP), Exploitation, Accessibilité (WCAG 2.2), Paiement, Sénégal (CDP), Union européenne et France (RGPD). Chaque règle cite sa source.
-- **Audit du site en ligne** : contrôles passifs d'une URL (TLS, en-têtes, cookies, traceurs avant consentement, pages légales, indexation, accessibilité de base), protégé contre le SSRF.
+- **Audit du site en ligne** : saisissez une URL, l'audit tourne en tâche de fond. *Rapide* : contrôles passifs de la page d'accueil (TLS, en-têtes, cookies, pages légales, indexation). *Complet* : un vrai Chromium parcourt jusqu'à 20 pages comme un visiteur et vérifie l'accessibilité avec axe-core (WCAG 2.2 AA), les liens cassés, les Core Web Vitals, le contenu mixte et les traceurs chargés avant consentement. Protégé contre le SSRF, après preuve de propriété du domaine (DNS ou fichier).
+- **Équipes** : comptes, organisations, rôles (propriétaire, administrateur, membre, invité) et rôles par projet (responsable, éditeur, contributeur, valideur, lecteur). Invitations par e-mail valables 7 jours, date de fin d'accès, journal d'activité inaltérable. Cloisonnement garanti par le Row Level Security de PostgreSQL.
 - **Preuves et dérogations** : ce qu'un robot ne peut pas vérifier (test de restauration, déclaration CDP, contrats de sous-traitance…) est attesté par une personne nommée. Une dérogation signée transforme un bloquant en Go conditionnel jusqu'à son échéance.
 - **Kanban de remédiation** : une tâche par écart, sans doublon, fermée automatiquement quand l'audit constate la correction, rouverte en cas de régression.
 - **Rapport** Go / No-Go imprimable (PDF) et export JSON.
@@ -34,15 +35,19 @@ PcyBox GoLive les transforme en **règles versionnées et déterministes**, conf
 ## Démarrer
 
 ```bash
+cp .env.example .env
+# renseignez BETTER_AUTH_SECRET, par exemple avec : openssl rand -base64 32
 docker compose up --build
-# puis http://localhost:3000
+# puis http://localhost:3000 et créez le premier compte
 ```
 
-Depuis les sources (Node.js 22+, pnpm 11+) :
+Depuis les sources (Node.js 22+, pnpm 11+, PostgreSQL 15+) :
 
 ```bash
 pnpm install
-pnpm dev
+cp .env.example .env        # DATABASE_URL vers votre base PostgreSQL
+pnpm db:migrate
+pnpm dev                    # application web et worker d'audit
 ```
 
 En ligne de commande :
