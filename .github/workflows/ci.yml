@@ -29,6 +29,10 @@ jobs:
       - run: pnpm build
       - name: CLI smoke test
         run: |
-          node apps/cli/dist/golive.js init --template saas-b2b
-          node apps/cli/dist/golive.js validate
-          node apps/cli/dist/golive.js check --as-of 2026-11-24 --fail-on never
+          cli="$GITHUB_WORKSPACE/apps/cli/dist/golive.js"
+          mkdir -p "$RUNNER_TEMP/smoke" && cd "$RUNNER_TEMP/smoke"
+          node "$cli" init --template saas-b2b
+          node "$cli" validate
+          node "$cli" check --as-of 2026-11-24 --fail-on never
+      - name: PcyBox GoLive checks itself
+        run: node apps/cli/dist/golive.js check --repo . --format markdown --fail-on never >> "$GITHUB_STEP_SUMMARY"

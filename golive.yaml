@@ -1,0 +1,32 @@
+# PcyBox GoLive checks itself. Run: golive check --repo .
+spec: golive/v1
+project:
+  name: PcyBox GoLive Community
+  type: saas
+  description: Self-hosted go / no-go platform. Projects are stored in the user's browser.
+  countries: [ SN, FR ]
+  languages: [ fr ]
+  audience: public
+actors:
+  - id: user
+    kind: user
+    name: Équipes projet
+components:
+  - id: web
+    kind: frontend
+    name: Application web
+    tech: nextjs@16
+    runtime: nodejs@22
+  - id: probe
+    kind: backend
+    name: Robot d'audit
+    tech: nextjs@16
+    runtime: nodejs@22
+    notes: Passive GET requests only, SSRF guarded, rate limited.
+links:
+  - { from: user, to: web, protocol: https }
+  - { from: web, to: probe, protocol: internal }
+layout:
+  user: [ 0, 120 ]
+  web: [ 260, 100 ]
+  probe: [ 540, 100 ]

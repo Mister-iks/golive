@@ -13,6 +13,7 @@ COPY packages/spec/package.json packages/spec/
 COPY packages/packs-sdk/package.json packages/packs-sdk/
 COPY packages/engine/package.json packages/engine/
 COPY packages/probe/package.json packages/probe/
+COPY packages/scanner/package.json packages/scanner/
 COPY packs/package.json packs/
 RUN pnpm install --frozen-lockfile
 

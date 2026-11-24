@@ -133,9 +133,9 @@ function Coverage({ project, report }: { project: WorkspaceProps["project"]; rep
     }
   };
 
-  const layers: { n: number; label: string; state: "on" | "off" | "soon" | "premium"; hint: string }[] = [
+  const layers: { n: number; label: string; state: "on" | "off" | "cli" | "premium"; hint: string }[] = [
     { n: 1, label: "Architecture déclarée", state: "on", hint: "Évaluée en continu depuis le Studio et la fiche." },
-    { n: 2, label: "Code et infrastructure", state: "soon", hint: "Scanners de dépôt (OSV-Scanner, Gitleaks, Trivy) : prochaine version." },
+    { n: 2, label: "Code et infrastructure", state: "cli", hint: "Secrets, dépendances vulnérables et conteneurs : lancez golive check --repo . dans votre CI." },
     { n: 3, label: "Site en ligne", state: report.coverage.layers.includes(3) ? "on" : "off", hint: "Audit passif de l'URL déclarée." },
     { n: 4, label: "Analyse IA", state: "premium", hint: "Disponible dans l'édition Premium." },
   ];
@@ -151,12 +151,13 @@ function Coverage({ project, report }: { project: WorkspaceProps["project"]; rep
                   "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs",
                   l.state === "on" && "border-go-line bg-go-soft text-go",
                   l.state === "off" && "border-line-strong text-fg-2",
-                  (l.state === "soon" || l.state === "premium") && "border-dashed border-line text-fg-4",
+                  (l.state === "cli" || l.state === "premium") && "border-dashed border-line text-fg-4",
                 )}
               >
                 <span className="font-mono text-[10.5px]">{l.n}</span>
                 <span className="max-lg:hidden">{l.label}</span>
                 {l.state === "premium" && <span className="font-mono text-[9.5px] uppercase">Pro</span>}
+                {l.state === "cli" && <span className="font-mono text-[9.5px] uppercase">CLI</span>}
               </li>
             </Tip>
           ))}
