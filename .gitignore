@@ -13,3 +13,4 @@ golive-report.*
 AGENTS.md
 CLAUDE.md
 .claude
+next-env.d.ts

@@ -3,7 +3,7 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * GoLive design tokens.
+ * PcyBox GoLive design tokens.
  * Neutral, instrument-like surfaces. Colour is reserved for signals:
  * go (green), blocker (red), warning (amber), proof required (blue).
  */

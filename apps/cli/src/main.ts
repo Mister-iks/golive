@@ -124,7 +124,7 @@ function exitCode(report: Report, failOn: CheckOptions["failOn"]) {
 function toMarkdown(r: Report) {
   const label = { go: "GO", conditional: "GO CONDITIONNEL", "no-go": "NO-GO" }[r.verdict.decision];
   const lines = [
-    `## GoLive : ${label} · score ${r.score.global}/100`,
+    `## PcyBox GoLive : ${label} · score ${r.score.global}/100`,
     "",
     r.verdict.reasons.map((x) => `- ${x}`).join("\n"),
     "",

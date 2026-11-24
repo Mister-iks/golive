@@ -9,7 +9,7 @@ const config: NextConfig = {
   serverExternalPackages: ["undici"],
   poweredByHeader: false,
   async headers() {
-    // GoLive passes its own checks.
+    // PcyBox GoLive passes its own checks.
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),

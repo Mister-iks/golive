@@ -38,7 +38,7 @@ export const euGdpr = definePack({
   name: "Union européenne et France",
   version: "0.1.0",
   description: "RGPD, cookies et traceurs, mentions légales (LCEN), transferts hors UE.",
-  maintainer: "GoLive (pack communautaire, revue juridique à venir)",
+  maintainer: "PcyBox GoLive (pack communautaire, revue juridique à venir)",
   countries: [...EU_EEA],
   rules: [
     defineRule({

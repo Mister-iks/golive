@@ -1,4 +1,4 @@
-# GoLive Community: self-hosted web application.
+# PcyBox GoLive Community: self-hosted web application.
 # docker compose up --build
 
 FROM node:22-alpine AS base

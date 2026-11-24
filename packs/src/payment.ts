@@ -10,7 +10,7 @@ export const payment = definePack({
   name: "Paiement",
   version: "0.1.0",
   description: "Intégration des prestataires de paiement (carte et mobile money) et obligations du marchand.",
-  maintainer: "GoLive",
+  maintainer: "PcyBox GoLive",
   rules: [
     defineRule({
       id: "pay.psp",
@@ -67,7 +67,7 @@ export const payment = definePack({
       category: "operations",
       severity: "minor",
       method: "evidence",
-      source: { label: "Bonnes pratiques GoLive" },
+      source: { label: "Bonnes pratiques PcyBox GoLive" },
       fix: "Interrogez périodiquement l'API du prestataire pour les transactions en attente et gérez les expirations.",
       applies: (ctx) => ctx.graph.ofKind("payment").some((p) => MOBILE_MONEY.has(parseTech(p.tech)?.name ?? "")),
       check: () => evidence("Attestez le traitement des paiements en attente et le rapprochement quotidien."),

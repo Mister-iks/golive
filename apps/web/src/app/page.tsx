@@ -166,14 +166,14 @@ function Row({ p, r }: { p: Project; r: Report }) {
 function Onboarding({ onPick }: { onPick: (id: string) => void }) {
   return (
     <div className="mx-auto max-w-[1040px] px-6 pb-16 pt-14">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go">GoLive Community</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go">PcyBox GoLive Community</p>
       <h2 className="mt-3 max-w-2xl text-[32px] font-semibold leading-[1.1] tracking-[-0.03em]">
         Rien ne part en production
         <br />
         sans son feu vert.
       </h2>
       <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-fg-2">
-        Dessinez votre architecture. GoLive la confronte aux référentiels de sécurité, d'exploitation et de conformité de vos pays, puis rend un verdict Go / No-Go
+        Dessinez votre architecture. PcyBox GoLive la confronte aux référentiels de sécurité, d'exploitation et de conformité de vos pays, puis rend un verdict Go / No-Go
         reproductible, avec la liste exacte de ce qui bloque.
       </p>
       <ol className="mt-8 grid max-w-3xl grid-cols-1 gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-4">

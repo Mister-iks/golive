@@ -88,7 +88,7 @@ export function selectPacks(spec: Spec, registry: Pack[] = COMMUNITY_PACKS): Pac
   return out;
 }
 
-/** Profiles GoLive recommends for a project, from what it declares. */
+/** Profiles PcyBox GoLive recommends for a project, from what it declares. */
 export function suggestProfiles(spec: Spec, registry: Pack[] = COMMUNITY_PACKS): string[] {
   const ids = registry.filter((p) => p.core).map((p) => p.id);
   if (spec.features.includes("payment") || spec.components.some((c) => c.kind === "payment")) ids.push("payment");

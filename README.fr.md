@@ -1,13 +1,13 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
-    <img src="docs/assets/logo-light.png" alt="GoLive" width="260">
+    <img src="docs/assets/logo-light.png" alt="PcyBox GoLive" width="420">
   </picture>
 </p>
 
 <p align="center">
   <strong>Le feu vert open source avant toute mise en production.</strong><br>
-  Décrivez votre projet. GoLive vérifie tout et délivre un feu vert vérifiable, ou la liste exacte de ce qui bloque.
+  Décrivez votre projet. PcyBox GoLive vérifie tout et délivre un feu vert vérifiable, ou la liste exacte de ce qui bloque.
 </p>
 
 <p align="center"><a href="README.md">English version</a></p>
@@ -16,7 +16,7 @@
 
 Chaque jour, des sites, applications et API partent en production sans pages légales, sans sécurité de base, sans sauvegarde, sans supervision ni conformité aux lois sur les données. Les référentiels existent (OWASP, RGPD, WCAG, lois nationales) mais ils sont éparpillés, longs et rarement adaptés au projet réel.
 
-GoLive les transforme en **règles versionnées et déterministes**, confrontées à ce que vous **déclarez** (votre architecture), ce que vous **codez** et ce qui est **en ligne**. Un seul verdict : **Go**, **Go conditionnel** ou **No-Go**.
+PcyBox GoLive les transforme en **règles versionnées et déterministes**, confrontées à ce que vous **déclarez** (votre architecture), ce que vous **codez** et ce qui est **en ligne**. Un seul verdict : **Go**, **Go conditionnel** ou **No-Go**.
 
 ## L'édition Community
 
@@ -54,7 +54,7 @@ node apps/cli/dist/golive.js check --url https://preprod.exemple.sn --env prepro
 
 ## Avertissement
 
-Le rapport GoLive atteste d'un contrôle à une date donnée. Il ne constitue ni une garantie de sécurité ni un avis juridique. Les packs légaux (Sénégal, UE) sont communautaires et en attente de revue par des juristes partenaires : leurs exigences sont à valider par un juriste.
+Le rapport PcyBox GoLive atteste d'un contrôle à une date donnée. Il ne constitue ni une garantie de sécurité ni un avis juridique. Les packs légaux (Sénégal, UE) sont communautaires et en attente de revue par des juristes partenaires : leurs exigences sont à valider par un juriste.
 
 ## Licences
 

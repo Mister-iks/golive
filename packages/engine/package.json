@@ -1,7 +1,7 @@
 {
   "name": "@golive/engine",
   "version": "0.1.0",
-  "description": "Deterministic GoLive verification engine: spec + packs + observations to a Go / No-Go verdict.",
+  "description": "Deterministic PcyBox GoLive verification engine: spec + packs + observations to a Go / No-Go verdict.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "exports": { ".": "./src/index.ts" },

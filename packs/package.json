@@ -1,7 +1,7 @@
 {
   "name": "@golive/packs",
   "version": "0.1.0",
-  "description": "Community compliance packs for GoLive.",
+  "description": "Community compliance packs for PcyBox GoLive.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": { ".": "./src/index.ts" },

@@ -1,7 +1,7 @@
 {
   "name": "golive",
   "private": true,
-  "description": "GoLive Community: the open-source go/no-go gate before any production launch.",
+  "description": "PcyBox GoLive Community: the open-source go/no-go gate before any production launch.",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@11.0.8",
   "engines": { "node": ">=22" },

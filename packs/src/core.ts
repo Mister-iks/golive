@@ -16,10 +16,10 @@ const ENDOFLIFE = { label: "endoflife.date", url: "https://endoflife.date" };
 
 export const core = definePack({
   id: "golive-core",
-  name: "Socle GoLive",
+  name: "Socle PcyBox GoLive",
   version: "0.1.0",
   description: "Architecture, technologies et qualité de base de tout projet mis en ligne.",
-  maintainer: "GoLive",
+  maintainer: "PcyBox GoLive",
   core: true,
   rules: [
     defineRule({

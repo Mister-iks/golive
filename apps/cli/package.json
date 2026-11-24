@@ -1,7 +1,7 @@
 {
   "name": "@golive/cli",
   "version": "0.1.0",
-  "description": "GoLive command line: verify a golive.yaml and gate your CI on the Go / No-Go verdict.",
+  "description": "PcyBox GoLive command line: verify a golive.yaml and gate your CI on the Go / No-Go verdict.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": { "golive": "./dist/golive.js" },

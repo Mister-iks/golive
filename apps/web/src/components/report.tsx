@@ -5,7 +5,7 @@ import { FileJson, Printer } from "lucide-react";
 import { CATEGORY_LABELS, COMMUNITY_PACKS } from "@golive/engine";
 import { COUNTRIES, DATA_LABELS, FEATURE_LABELS, PROJECT_TYPE_LABELS } from "@golive/spec";
 import { download, longDate, slug } from "@/lib/format";
-import { Mark } from "./brand";
+import { Wordmark } from "./brand";
 import { Button, cx, DECISION_LABEL, SeverityTag, StatusIcon, STATUS_LABEL } from "./ui";
 import type { WorkspaceProps } from "./workspace";
 
@@ -35,10 +35,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
       <article className="mx-auto my-8 max-w-[820px] rounded-lg border border-line bg-surface px-12 py-11 print:my-0 print:max-w-none print:border-0 print:p-0">
         <header className="flex items-start justify-between border-b border-line pb-6">
           <div>
-            <div className="flex items-center gap-2">
-              <Mark size={22} />
-              <span className="font-brand text-[16px] font-semibold">GoLive</span>
-            </div>
+            <Wordmark size="lg" />
             <p className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-fg-3">Rapport Go / No-Go</p>
             <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em]">{spec.project.name}</h1>
             <p className="mt-1 text-[13px] text-fg-3">
@@ -113,7 +110,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
                   <td className="py-1.5 font-mono text-[11px] text-fg-3">
                     {p.id}@{p.version}
                   </td>
-                  <td className="py-1.5 text-right text-xs text-fg-3">{p.stale ? "Revue juridique à faire" : p.reviewedAt ? `Revu le ${longDate(p.reviewedAt)}` : "Maintenu par GoLive"}</td>
+                  <td className="py-1.5 text-right text-xs text-fg-3">{p.stale ? "Revue juridique à faire" : p.reviewedAt ? `Revu le ${longDate(p.reviewedAt)}` : "Maintenu par PcyBox GoLive"}</td>
                 </tr>
               ))}
             </tbody>
@@ -213,7 +210,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
 
         <footer className="mt-8 border-t border-line pt-4 text-[11px] leading-relaxed text-fg-3">
           <p>
-            Empreinte <span className="font-mono text-fg-2">{report.fingerprint}</span> · moteur GoLive {report.engine} · date de référence {report.asOf}. Les mêmes
+            Empreinte <span className="font-mono text-fg-2">{report.fingerprint}</span> · moteur PcyBox GoLive {report.engine} · date de référence {report.asOf}. Les mêmes
             entrées (golive.yaml, versions des packs, état du site) redonnent toujours ce verdict.
           </p>
           <p className="mt-2">

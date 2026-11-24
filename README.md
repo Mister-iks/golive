@@ -1,13 +1,13 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-dark.png">
-    <img src="docs/assets/logo-light.png" alt="GoLive" width="260">
+    <img src="docs/assets/logo-light.png" alt="PcyBox GoLive" width="420">
   </picture>
 </p>
 
 <p align="center">
   <strong>The open-source go / no-go gate before any production launch.</strong><br>
-  Describe your project. GoLive checks everything and returns a verifiable green light, or the exact list of what blocks it.
+  Describe your project. PcyBox GoLive checks everything and returns a verifiable green light, or the exact list of what blocks it.
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 
 Websites, apps and APIs go live every day without legal pages, basic security, backups, monitoring or data-protection compliance. The checklists exist (OWASP, GDPR, WCAG, national laws) but they are scattered, long and rarely fit the actual project.
 
-GoLive turns them into **versioned, deterministic rules** that run against what you **declare** (your architecture), what you **code** and what is **online**, and returns one verdict: **Go**, **Conditional Go** or **No-Go**.
+PcyBox GoLive turns them into **versioned, deterministic rules** that run against what you **declare** (your architecture), what you **code** and what is **online**, and returns one verdict: **Go**, **Conditional Go** or **No-Go**.
 
 ## What you get in Community
 
@@ -114,7 +114,7 @@ Full reference: [docs/spec.md](docs/spec.md).
 3. Score per category and overall, weighted by severity (blocker 10, major 5, minor 2, info 1).
 4. **No-Go** if any blocker is open, or the score is under the threshold (70, or 80 for financial, health and public services). **Conditional Go** if every open blocker is covered by a valid waiver. Otherwise **Go**.
 
-The verdict never depends on an AI. Legal findings always carry a "to be validated by a lawyer" notice: GoLive flags, cites and points, it does not give legal advice.
+The verdict never depends on an AI. Legal findings always carry a "to be validated by a lawyer" notice: PcyBox GoLive flags, cites and points, it does not give legal advice.
 
 ## Repository layout
 
@@ -151,7 +151,7 @@ Rule of thumb: everything needed to **verify** stays open; what saves a **team**
 
 ## Contributing
 
-Rules and packs are the heart of GoLive and the easiest place to start. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/writing-rules.md](docs/writing-rules.md). Commits are signed off under the [DCO](https://developercertificate.org/).
+Rules and packs are the heart of PcyBox GoLive and the easiest place to start. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/writing-rules.md](docs/writing-rules.md). Commits are signed off under the [DCO](https://developercertificate.org/).
 
 Security issues: see [SECURITY.md](SECURITY.md).
 
@@ -159,4 +159,4 @@ Security issues: see [SECURITY.md](SECURITY.md).
 
 - Server, web app, engine and probe: [AGPL-3.0](LICENSE).
 - GoLive Spec, packs SDK, community packs and CLI: [Apache-2.0](packages/spec/LICENSE).
-- The GoLive name and logo are not covered by these licenses. Forks are welcome under another name.
+- The PcyBox GoLive name and logo are not covered by these licenses. Forks are welcome under another name.

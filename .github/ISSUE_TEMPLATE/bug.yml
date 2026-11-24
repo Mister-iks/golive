@@ -18,5 +18,5 @@ body:
   - type: input
     id: version
     attributes:
-      label: GoLive version
+      label: PcyBox GoLive version
       placeholder: "0.1.0"

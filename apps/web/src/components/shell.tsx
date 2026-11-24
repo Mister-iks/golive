@@ -20,7 +20,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="flex h-dvh overflow-hidden">
       <aside className="no-print flex w-[216px] shrink-0 flex-col border-r border-line bg-surface-2 max-md:hidden">
         <div className="flex h-12 items-center px-4">
-          <Link href="/" aria-label="GoLive, accueil">
+          <Link href="/" aria-label="PcyBox GoLive, accueil">
             <Wordmark />
           </Link>
         </div>

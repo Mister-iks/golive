@@ -8,8 +8,8 @@ import "./globals.css";
 const lexend = Lexend({ subsets: ["latin"], weight: ["600"], variable: "--font-lexend", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "GoLive", template: "%s · GoLive" },
-  description: "Le feu vert avant toute mise en production. Dessinez votre architecture, GoLive vérifie tout et rend un verdict Go / No-Go.",
+  title: { default: "PcyBox GoLive", template: "%s · PcyBox GoLive" },
+  description: "Le feu vert avant toute mise en production. Dessinez votre architecture, PcyBox GoLive vérifie tout et rend un verdict Go / No-Go.",
   icons: { icon: "/favicon-32.png", apple: "/icon-192.png" },
 };
 

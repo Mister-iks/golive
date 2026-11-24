@@ -19,7 +19,7 @@ export const webSecurity = definePack({
   name: "Sécurité web",
   version: "0.1.0",
   description: "Contrôles issus de l'OWASP Top 10 et de l'OWASP ASVS niveau 1.",
-  maintainer: "GoLive",
+  maintainer: "PcyBox GoLive",
   core: true,
   rules: [
     defineRule({

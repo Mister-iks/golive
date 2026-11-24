@@ -21,7 +21,7 @@ export const snCdp = definePack({
   name: "Sénégal",
   version: "0.1.0",
   description: "Loi 2008-12 et formalités auprès de la CDP, mentions des sites marchands, hébergement des données publiques.",
-  maintainer: "GoLive (pack communautaire, revue juridique à venir)",
+  maintainer: "PcyBox GoLive (pack communautaire, revue juridique à venir)",
   countries: ["SN"],
   rules: [
     defineRule({

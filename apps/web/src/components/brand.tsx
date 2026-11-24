@@ -1,6 +1,6 @@
 import { cx } from "./ui";
 
-/** The GoLive shield, drawn as SVG so it stays crisp and follows the theme. */
+/** The PcyBox GoLive shield, drawn as SVG so it stays crisp and follows the theme. */
 export function Mark({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
@@ -16,11 +16,16 @@ export function Mark({ size = 20, className }: { size?: number; className?: stri
   );
 }
 
-export function Wordmark({ className }: { className?: string }) {
+/** Product name, always written "PcyBox GoLive". */
+export const PRODUCT = "PcyBox GoLive";
+
+export function Wordmark({ className, size = "md" }: { className?: string; size?: "md" | "lg" }) {
   return (
     <span className={cx("inline-flex items-center gap-2 text-fg", className)}>
-      <Mark size={20} />
-      <span className="font-brand text-[15px] font-semibold tracking-[-0.01em]">GoLive</span>
+      <Mark size={size === "lg" ? 22 : 20} />
+      <span className={cx("font-brand font-semibold tracking-[-0.01em]", size === "lg" ? "text-[16px]" : "text-[15px]")}>
+        <span className="text-fg-2">PcyBox</span> GoLive
+      </span>
     </span>
   );
 }

@@ -1,6 +1,6 @@
-# Contributing to GoLive
+# Contributing to PcyBox GoLive
 
-Thank you for helping. The most valuable contributions are **rules and packs**: each one protects every project that runs GoLive.
+Thank you for helping. The most valuable contributions are **rules and packs**: each one protects every project that runs PcyBox GoLive.
 
 ## Ground rules
 

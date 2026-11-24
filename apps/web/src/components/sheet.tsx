@@ -176,7 +176,7 @@ export function Sheet({ project }: WorkspaceProps) {
 
         <Section
           title="Packs de conformité"
-          description="Les référentiels appliqués. En automatique, GoLive les choisit d'après le type, les fonctionnalités et les pays."
+          description="Les référentiels appliqués. En automatique, PcyBox GoLive les choisit d'après le type, les fonctionnalités et les pays."
           last
         >
           <label className="mb-3 flex items-center gap-2 text-[13px]">

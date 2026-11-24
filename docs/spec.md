@@ -110,7 +110,7 @@ profiles: [ golive-core, web-security, operations, payment, sn-cdp, eu-gdpr ]
 
 Aliases: `owasp-asvs-l1` → `web-security`, `wcag-aa` → `accessibility`, `sn` → `sn-cdp`, `eu`, `fr`, `gdpr`, `rgpd` → `eu-gdpr`.
 
-When empty, GoLive applies the core packs, plus `payment` if the project takes payments, `accessibility` for public services and e-commerce, and every country pack matching `project.countries`.
+When empty, PcyBox GoLive applies the core packs, plus `payment` if the project takes payments, `accessibility` for public services and e-commerce, and every country pack matching `project.countries`.
 
 ## `evidence`
 

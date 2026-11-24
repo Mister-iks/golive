@@ -43,8 +43,8 @@ Return one finding or an array: `pass`, `warn`, `fail`, `evidence` (proof requir
 1. **Deterministic.** No network, no clock, no randomness inside `check`.
 2. **Sourced.** Every rule cites a law article, standard or recognised guide. No source, no rule.
 3. **Actionable.** `fix` says what to do, in plain words, in one or two sentences.
-4. **Passive.** Layer 3 rules only read what the probe observed. GoLive never attacks a site.
-5. **Legal humility.** Legal rules set `legal: true`. GoLive flags and cites, it does not give legal advice.
+4. **Passive.** Layer 3 rules only read what the probe observed. PcyBox GoLive never attacks a site.
+5. **Legal humility.** Legal rules set `legal: true`. PcyBox GoLive flags and cites, it does not give legal advice.
 6. **Tested.** Add a case to [`packages/engine/test`](../packages/engine/test) that makes the rule fail and pass.
 
 ## Adding a country pack

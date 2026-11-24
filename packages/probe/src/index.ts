@@ -6,7 +6,7 @@ import { assertUrlAllowed, guardedLookup, type GuardOptions } from "./guard";
 
 export { BlockedAddressError, isBlockedIp } from "./guard";
 
-export const USER_AGENT = "GoLiveBot/0.1 (passive pre-production audit)";
+export const USER_AGENT = "PcyBoxGoLiveBot/0.1 (passive pre-production audit)";
 
 export interface ProbeOptions extends GuardOptions {
   env?: "prod" | "preprod";

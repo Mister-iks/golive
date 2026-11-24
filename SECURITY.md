@@ -1,6 +1,6 @@
 # Security policy
 
-A tool that certifies others must hold itself to the same bar. Thank you for helping keep GoLive safe.
+A tool that certifies others must hold itself to the same bar. Thank you for helping keep PcyBox GoLive safe.
 
 ## Reporting a vulnerability
 

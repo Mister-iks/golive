@@ -7,7 +7,7 @@ export const operations = definePack({
   name: "Exploitation",
   version: "0.1.0",
   description: "Sauvegardes testées, reprise d'activité, incidents et déploiements maîtrisés.",
-  maintainer: "GoLive",
+  maintainer: "PcyBox GoLive",
   core: true,
   rules: [
     defineRule({

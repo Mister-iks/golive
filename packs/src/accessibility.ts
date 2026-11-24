@@ -11,7 +11,7 @@ export const accessibility = definePack({
   name: "Accessibilité",
   version: "0.1.0",
   description: "WCAG 2.2 niveau AA : contrôles automatisables et preuves d'audit manuel.",
-  maintainer: "GoLive",
+  maintainer: "PcyBox GoLive",
   rules: [
     defineRule({
       id: "a11y.lang",

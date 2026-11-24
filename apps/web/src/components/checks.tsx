@@ -272,7 +272,7 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
 
           {r.legal && (
             <p className="mt-4 flex max-w-3xl items-center gap-2 text-xs text-fg-3">
-              <Scale size={13} /> Exigence légale signalée par GoLive, à valider par un juriste. GoLive ne délivre pas d'avis juridique.
+              <Scale size={13} /> Exigence légale signalée par PcyBox GoLive, à valider par un juriste. PcyBox GoLive ne délivre pas d'avis juridique.
             </p>
           )}
 
