@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * GoLive design tokens.
+ * Neutral, instrument-like surfaces. Colour is reserved for signals:
+ * go (green), blocker (red), warning (amber), proof required (blue).
+ */
+:root {
+  --bg: #f6f6f7;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --sunken: #f0f0f2;
+  --line: #e7e7ea;
+  --line-strong: #d6d6db;
+  --fg: #0e0f11;
+  --fg-2: #4f525a;
+  --fg-3: #85878e;
+  --fg-4: #b0b2b8;
+  --accent: #0e0f11;
+  --accent-fg: #ffffff;
+  --focus: #0e9f62;
+
+  --go: #0e9f62;
+  --go-soft: #e7f6ef;
+  --go-line: #b5e3cd;
+  --red: #d93036;
+  --red-soft: #fdeced;
+  --red-line: #f5c2c4;
+  --amber: #b86e00;
+  --amber-soft: #fdf4e3;
+  --amber-line: #f0d6a6;
+  --blue: #2563d9;
+  --blue-soft: #ebf1fd;
+  --blue-line: #c3d5f8;
+
+  --canvas-dot: #d4d4d9;
+  --shadow-pop: 0 1px 2px rgb(14 15 17 / 0.06), 0 8px 24px -6px rgb(14 15 17 / 0.14);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0c0e;
+  --surface: #111215;
+  --surface-2: #15161a;
+  --sunken: #0e0f11;
+  --line: #222429;
+  --line-strong: #2e3036;
+  --fg: #ededef;
+  --fg-2: #a3a5ad;
+  --fg-3: #6f727a;
+  --fg-4: #4a4d54;
+  --accent: #ededef;
+  --accent-fg: #0e0f11;
+  --focus: #16c784;
+
+  --go: #16c784;
+  --go-soft: #0f2a1f;
+  --go-line: #17583c;
+  --red: #ff5a5f;
+  --red-soft: #2d1416;
+  --red-line: #5c2427;
+  --amber: #f5b54a;
+  --amber-soft: #2b2110;
+  --amber-line: #5a4318;
+  --blue: #6aa1ff;
+  --blue-soft: #121d33;
+  --blue-line: #243b66;
+
+  --canvas-dot: #26282d;
+  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sunken: var(--sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-fg-4: var(--fg-4);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-go: var(--go);
+  --color-go-soft: var(--go-soft);
+  --color-go-line: var(--go-line);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-red-line: var(--red-line);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-line: var(--amber-line);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-blue-line: var(--blue-line);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-brand: var(--font-lexend), var(--font-geist-sans), sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--go) 28%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  button {
+    cursor: default;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+/* --------------------------------------------------------- React Flow */
+
+.react-flow {
+  --xy-background-color: var(--bg);
+  --xy-edge-stroke: var(--fg-4);
+  --xy-edge-stroke-selected: var(--fg);
+  --xy-connectionline-stroke: var(--go);
+  --xy-handle-background-color: var(--surface);
+  --xy-handle-border-color: var(--fg-3);
+  --xy-selection-background-color: color-mix(in oklab, var(--go) 8%, transparent);
+  --xy-selection-border: 1px solid color-mix(in oklab, var(--go) 50%, transparent);
+  --xy-controls-button-background-color: var(--surface);
+  --xy-controls-button-background-color-hover: var(--surface-2);
+  --xy-controls-button-color: var(--fg-2);
+  --xy-controls-button-border-color: var(--line);
+  --xy-minimap-background-color: var(--surface);
+  --xy-minimap-mask-background-color: color-mix(in oklab, var(--bg) 70%, transparent);
+  --xy-attribution-background-color: transparent;
+}
+.react-flow__handle {
+  width: 7px;
+  height: 7px;
+  border-width: 1.5px;
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.react-flow__node:hover .react-flow__handle,
+.react-flow__node.selected .react-flow__handle,
+.react-flow.connecting .react-flow__handle {
+  opacity: 1;
+}
+.react-flow__controls {
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  border-bottom: 1px solid var(--line);
+  width: 28px;
+  height: 28px;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+.react-flow__minimap {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.react-flow__edge-textbg {
+  fill: var(--bg);
+}
+.react-flow__attribution {
+  display: none;
+}
+
+/* ------------------------------------------------------------- CodeMirror */
+
+.cm-editor {
+  height: 100%;
+  font-size: 12.5px;
+  background: transparent !important;
+}
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+.cm-scroller {
+  font-family: var(--font-mono) !important;
+  line-height: 1.65 !important;
+}
+.cm-gutters {
+  background: transparent !important;
+  border-right: 1px solid var(--line) !important;
+  color: var(--fg-4) !important;
+}
+.cm-activeLine,
+.cm-activeLineGutter {
+  background: color-mix(in oklab, var(--fg) 4%, transparent) !important;
+}
+.cm-tooltip {
+  border: 1px solid var(--line) !important;
+  background: var(--surface) !important;
+  border-radius: 6px;
+  box-shadow: var(--shadow-pop);
+}
+
+/* ------------------------------------------------------------------ Print */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
+  }
+  :root,
+  [data-theme="dark"] {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-2: #fff;
+    --fg: #000;
+    --fg-2: #333;
+    --fg-3: #666;
+    --line: #ddd;
+    color-scheme: light;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-root {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .break-avoid {
+    break-inside: avoid;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
