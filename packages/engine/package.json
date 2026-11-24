@@ -1,0 +1,15 @@
+{
+  "name": "@golive/engine",
+  "version": "0.1.0",
+  "description": "Deterministic GoLive verification engine: spec + packs + observations to a Go / No-Go verdict.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p .", "test": "vitest run" },
+  "dependencies": {
+    "@golive/packs": "workspace:*",
+    "@golive/packs-sdk": "workspace:*",
+    "@golive/spec": "workspace:*"
+  },
+  "devDependencies": { "vitest": "^4.1.12" }
+}
