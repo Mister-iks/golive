@@ -1,0 +1,15 @@
+services:
+  golive:
+    build: .
+    image: golive-community:local
+    ports:
+      - "3000:3000"
+    environment:
+      # Set to "1" only to audit an internal pre-production reachable on a private network.
+      GOLIVE_ALLOW_PRIVATE: "0"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

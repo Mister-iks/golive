@@ -1,0 +1,26 @@
+name: Rule proposal
+description: Propose a new check or a change to an existing one
+labels: [rule]
+body:
+  - type: input
+    id: title
+    attributes:
+      label: What should GoLive check?
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: Law article, standard or recognised guide. Rules without a source are not accepted.
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options: ["1: declared architecture", "2: code and infrastructure", "3: online site"]
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters before going live
