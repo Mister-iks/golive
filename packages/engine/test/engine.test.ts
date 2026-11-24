@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { TEMPLATES, parseSpec, stringifySpec, validateSpec, type Spec } from "@golive/spec";
-import { COMMUNITY_PACKS, evaluate, type RepoObservation } from "../src";
+import { COMMUNITY_PACKS, evaluate, suggestProfiles, type RepoObservation } from "../src";
 
 function scan(partial: Partial<RepoObservation> = {}): RepoObservation {
   return {
@@ -192,5 +192,87 @@ describe("engine", () => {
       expect(report.results.find((x) => x.ruleId === "sec.app.dependency-scan")?.status).toBe("evidence");
       expect(report.coverage.layers).not.toContain(2);
     });
+  });
+});
+
+describe("layer 3, full audit", () => {
+  const base = {
+    url: "https://boutique.example.sn",
+    env: "prod" as const,
+    finalUrl: "https://boutique.example.sn/",
+    fetchedAt: "2026-11-24T10:00:00.000Z",
+    ok: true,
+    status: 200,
+    httpsRedirect: true as const,
+    headers: {},
+    setCookies: [],
+    wellKnown: { robotsTxt: true, securityTxt: false, sitemap: true },
+    timing: { ttfbMs: 200, totalMs: 400 },
+    bytes: 1000,
+  };
+  const page = (path: string, extra: object = {}) => ({
+    url: `https://boutique.example.sn${path}`,
+    status: 200,
+    title: `Titre ${path}`,
+    metaDescription: "d",
+    h1: 1,
+    noindex: false,
+    timing: { lcpMs: 1800, cls: 0.02 },
+    bytes: 0,
+    requests: 10,
+    consoleErrors: 0,
+    axe: { violations: [], passes: 40, incomplete: 0 },
+    ...extra,
+  });
+  const crawl = (extra: object = {}) => ({
+    browser: "chromium 159",
+    startedAt: "2026-11-24T10:00:00.000Z",
+    durationMs: 9000,
+    maxPages: 20,
+    truncated: false,
+    pages: [page("/"), page("/produits")],
+    brokenLinks: [],
+    thirdParties: [],
+    cookiesBeforeConsent: [],
+    mixedContent: [],
+    blockedRequests: 0,
+    ...extra,
+  });
+  const spec = load("ecommerce");
+  const withA11y = { ...spec, profiles: [...new Set([...suggestProfiles(spec), "accessibility"])] };
+  const run = (c: object | undefined, id: string) => {
+    const r = evaluate(withA11y, { asOf: AS_OF, web: { ...base, crawl: c as never } }).results.find((x) => x.ruleId === id);
+    if (!r) throw new Error(`rule ${id} not evaluated`);
+    return r;
+  };
+
+  it("does not run crawl rules after a quick audit", () => {
+    expect(run(undefined, "core.web.broken-links").status).toBe("not-run");
+    expect(run(undefined, "a11y.axe").status).toBe("not-run");
+  });
+
+  it("passes on a clean crawl", () => {
+    for (const id of ["core.web.broken-links", "core.web.vitals", "sec.web.mixed-content", "a11y.axe", "core.web.pages-metadata"]) {
+      expect([id, run(crawl(), id).status]).toEqual([id, "pass"]);
+    }
+  });
+
+  it("reports broken links, slow pages, mixed content and accessibility violations", () => {
+    const c = crawl({
+      pages: [
+        page("/", { timing: { lcpMs: 5200, cls: 0.3 }, axe: { violations: [{ id: "color-contrast", impact: "serious", help: "Contraste suffisant", helpUrl: "u", tags: [], nodes: 7 }], passes: 1, incomplete: 0 } }),
+        page("/panier", { timing: { lcpMs: 4800 } }),
+      ],
+      brokenLinks: [{ url: "https://boutique.example.sn/cgv", status: 404, from: "https://boutique.example.sn/" }],
+      mixedContent: [{ page: "https://boutique.example.sn/", url: "http://cdn.example.sn/a.js" }],
+      thirdParties: ["connect.facebook.net"],
+    });
+    expect(run(c, "core.web.broken-links").status).toBe("fail");
+    expect(run(c, "core.web.vitals").status).toBe("fail");
+    expect(run(c, "sec.web.mixed-content").status).toBe("fail");
+    const axe = run(c, "a11y.axe");
+    expect(axe.status).toBe("fail");
+    expect(JSON.stringify(axe)).toContain("7 éléments sur 1 page");
+    expect(run(c, "eu.cookies.consent").status).toBe("fail");
   });
 });

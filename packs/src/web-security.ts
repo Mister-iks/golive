@@ -10,7 +10,7 @@ import {
   warn,
   type Finding,
 } from "@golive/packs-sdk";
-import { list, withRepo, withWeb } from "./util";
+import { list, pathOf, plural, withCrawl, withRepo, withWeb } from "./util";
 
 const HEADERS = { label: "OWASP Secure Headers Project", url: "https://owasp.org/www-project-secure-headers/" };
 const ASVS = { label: "OWASP ASVS 5.0", url: "https://owasp.org/www-project-application-security-verification-standard/" };
@@ -214,6 +214,27 @@ export const webSecurity = definePack({
           return leaks.length
             ? leaks.map(([k, v]) => warn(`${k} divulgue « ${v} ».`, { observed: v }))
             : pass("Aucune version divulguée.");
+        }),
+    }),
+
+    defineRule({
+      id: "sec.web.mixed-content",
+      title: "Aucun contenu mixte",
+      why: "Une ressource chargée en http:// sur une page https:// peut être modifiée en chemin et casse le cadenas du navigateur.",
+      layer: 3,
+      category: "security",
+      severity: "major",
+      method: "auto",
+      source: { label: "W3C, Mixed Content", url: "https://www.w3.org/TR/mixed-content/" },
+      fix: "Chargez toutes les ressources en https:// (ou en chemin relatif) et ajoutez la directive CSP upgrade-insecure-requests.",
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          if (!crawl.mixedContent.length) return pass(`Aucune ressource http:// sur ${plural(crawl.pages.length, "page")}.`);
+          const pages = new Set(crawl.mixedContent.map((m) => m.page));
+          const first = crawl.mixedContent[0]!;
+          return fail(`${plural(crawl.mixedContent.length, "ressource")} en http:// sur ${plural(pages.size, "page")}, par exemple ${first.url} (${pathOf(first.page)}).`, {
+            observed: crawl.mixedContent.slice(0, 3).map((m) => m.url).join(" "),
+          });
         }),
     }),
 

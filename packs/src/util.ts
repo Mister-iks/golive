@@ -1,4 +1,4 @@
-import { notRun, notScanned, type Finding, type RepoObservation, type RuleContext, type WebObservation } from "@golive/packs-sdk";
+import { notRun, notScanned, type CrawlObservation, type Finding, type RepoObservation, type RuleContext, type WebObservation } from "@golive/packs-sdk";
 
 /** Run a layer 3 check only when a successful web observation exists. */
 export function withWeb(ctx: RuleContext, fn: (web: WebObservation) => Finding | Finding[]): Finding | Finding[] {
@@ -6,6 +6,26 @@ export function withWeb(ctx: RuleContext, fn: (web: WebObservation) => Finding |
   if (!ctx.web.ok) return notRun("Le site n'a pas pu être audité.");
   return fn(ctx.web);
 }
+
+/** Run a check that needs the multi-page crawl of a full audit. */
+export function withCrawl(ctx: RuleContext, fn: (crawl: CrawlObservation, web: WebObservation) => Finding | Finding[]): Finding | Finding[] {
+  return withWeb(ctx, (web) => {
+    if (!web.crawl) return notRun("Audit complet non lancé : le robot n'a pas encore parcouru le site.");
+    if (!web.crawl.pages.some((p) => p.status !== null && p.status < 400)) return notRun("Le robot n'a pu charger aucune page.");
+    return fn(web.crawl, web);
+  });
+}
+
+export const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n > 1 ? many : word}`;
+
+export const pathOf = (url: string) => {
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
+};
 
 /** Run a layer 2 check only when the repository was scanned. */
 export function withRepo(ctx: RuleContext, fn: (repo: RepoObservation) => Finding | Finding[]): Finding | Finding[] {

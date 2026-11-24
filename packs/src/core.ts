@@ -10,7 +10,7 @@ import {
   warn,
   type Finding,
 } from "@golive/packs-sdk";
-import { daysBetween, isLocalFile, list, withRepo, withWeb } from "./util";
+import { daysBetween, isLocalFile, list, pathOf, plural, withCrawl, withRepo, withWeb } from "./util";
 
 const ENDOFLIFE = { label: "endoflife.date", url: "https://endoflife.date" };
 
@@ -364,6 +364,84 @@ export const core = definePack({
     }),
 
     defineRule({
+      id: "core.web.broken-links",
+      title: "Aucun lien interne cassé",
+      why: "Une page qui répond 404 ou 500 depuis la navigation casse le parcours et dégrade le référencement.",
+      layer: 3,
+      category: "quality",
+      severity: "major",
+      method: "auto",
+      source: { label: "RFC 9110, codes de statut HTTP", url: "https://www.rfc-editor.org/rfc/rfc9110#section-15" },
+      fix: "Corrigez ou redirigez (301) chaque lien listé, puis relancez l'audit complet.",
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          if (!crawl.brokenLinks.length) return pass(`${plural(crawl.pages.length, "page")} parcourue${crawl.pages.length > 1 ? "s" : ""}, aucun lien cassé.`);
+          return crawl.brokenLinks.slice(0, 20).map((b) =>
+            fail(`${pathOf(b.url)} répond ${b.status ?? "sans réponse"}${b.from ? `, lien depuis ${pathOf(b.from)}` : ""}.`, {
+              observed: `${b.status ?? "erreur"} ${b.url}`,
+            }),
+          );
+        }),
+    }),
+
+    defineRule({
+      id: "core.web.pages-metadata",
+      title: "Chaque page a un titre unique et une description",
+      why: "Des titres absents ou dupliqués rendent les pages indiscernables dans les résultats de recherche et les onglets.",
+      layer: 3,
+      category: "quality",
+      severity: "minor",
+      method: "auto",
+      source: { label: "Google Search Central, title links", url: "https://developers.google.com/search/docs/appearance/title-link" },
+      fix: "Donnez à chaque page un <title> propre, une meta description et un seul titre <h1>.",
+      applies: (ctx) => ctx.spec.project.audience === "public",
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          const ok = crawl.pages.filter((p) => p.status !== null && p.status < 400);
+          const out: Finding[] = [];
+          const noTitle = ok.filter((p) => !p.title);
+          const titles = new Map<string, string[]>();
+          for (const p of ok) if (p.title) titles.set(p.title, [...(titles.get(p.title) ?? []), pathOf(p.url)]);
+          const dup = [...titles.entries()].filter(([, v]) => v.length > 1);
+          const noDesc = ok.filter((p) => !p.metaDescription);
+          const h1 = ok.filter((p) => p.h1 !== 1);
+          if (noTitle.length) out.push(fail(`Sans titre : ${list(noTitle.slice(0, 5).map((p) => pathOf(p.url)))}.`));
+          if (dup.length) out.push(warn(`Titres dupliqués : ${list(dup.slice(0, 3).map(([t, v]) => `« ${t} » (${v.length} pages)`))}.`));
+          if (noDesc.length) out.push(warn(`${plural(noDesc.length, "page")} sans meta description sur ${ok.length}.`));
+          if (h1.length) out.push(warn(`${plural(h1.length, "page")} sans titre <h1> unique (${list(h1.slice(0, 3).map((p) => pathOf(p.url)))}).`, { severity: "info" }));
+          return out.length ? out : pass(`${plural(ok.length, "page")} : titres uniques, descriptions et h1 présents.`);
+        }),
+    }),
+
+    defineRule({
+      id: "core.web.vitals",
+      title: "Affichage rapide et stable (Core Web Vitals)",
+      why: "Au-delà de 2,5 s pour afficher le contenu principal, ou si la page saute pendant le chargement, une partie des visiteurs abandonne.",
+      layer: 3,
+      category: "quality",
+      severity: "major",
+      method: "auto",
+      source: { label: "web.dev, Core Web Vitals", url: "https://web.dev/articles/vitals" },
+      fix: "Optimisez l'image ou le bloc principal (taille, format, préchargement), réservez la place des médias et publicités, différez les scripts tiers.",
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          const measured = crawl.pages.filter((p) => p.timing.lcpMs !== undefined);
+          if (!measured.length) return warn("Mesures non disponibles dans ce navigateur.");
+          const lcp = median(measured.map((p) => p.timing.lcpMs!));
+          const cls = Math.max(...measured.map((p) => p.timing.cls ?? 0));
+          const worst = measured.reduce((a, b) => (b.timing.lcpMs! > a.timing.lcpMs! ? b : a));
+          const out: Finding[] = [];
+          const text = `LCP médian ${sec(lcp)} sur ${plural(measured.length, "page")}, le plus lent ${sec(worst.timing.lcpMs!)} (${pathOf(worst.url)})`;
+          if (lcp > 4000) out.push(fail(`${text}.`, { observed: `${Math.round(lcp)} ms` }));
+          else if (lcp > 2500) out.push(warn(`${text} (cible : 2,5 s).`, { observed: `${Math.round(lcp)} ms` }));
+          else out.push(pass(`${text}.`, { observed: `${Math.round(lcp)} ms` }));
+          if (cls > 0.25) out.push(fail(`Décalage de mise en page élevé (CLS ${cls}).`, { observed: `CLS ${cls}` }));
+          else if (cls > 0.1) out.push(warn(`Décalage de mise en page à surveiller (CLS ${cls}, cible : 0,1).`, { severity: "minor", observed: `CLS ${cls}` }));
+          return out;
+        }),
+    }),
+
+    defineRule({
       id: "core.web.ttfb",
       title: "Temps de réponse serveur raisonnable",
       why: "Au-delà de 800 ms avant le premier octet, l'expérience se dégrade nettement, surtout en 3G.",
@@ -412,3 +490,11 @@ function techsOf(c: Component) {
 function eolKnown(name: string) {
   return !!EOL[TECH_ALIASES[name] ?? name];
 }
+
+function median(values: number[]) {
+  const v = [...values].sort((a, b) => a - b);
+  const m = Math.floor(v.length / 2);
+  return v.length % 2 ? v[m]! : (v[m - 1]! + v[m]!) / 2;
+}
+
+const sec = (ms: number) => `${(ms / 1000).toFixed(1).replace(".", ",")} s`;

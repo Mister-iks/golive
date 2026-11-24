@@ -44,6 +44,55 @@ export interface WebObservation {
   wellKnown: { robotsTxt: boolean; securityTxt: boolean; sitemap: boolean };
   timing: { ttfbMs: number; totalMs: number };
   bytes: number;
+  /** Multi-page crawl in a real browser (full audit only). */
+  crawl?: CrawlObservation;
+}
+
+/** What the audit robot saw while browsing the site like a visitor, without interacting. */
+export interface CrawlObservation {
+  browser: string;
+  startedAt: string;
+  durationMs: number;
+  maxPages: number;
+  /** More same-site pages were found than the budget allowed. */
+  truncated: boolean;
+  pages: CrawledPage[];
+  /** Same-site links answering 4xx or 5xx, with the page that links to them. */
+  brokenLinks: { url: string; status: number | null; from: string }[];
+  /** Hosts outside the site contacted while loading pages. */
+  thirdParties: string[];
+  /** Cookies present after loading the first page, before any click. */
+  cookiesBeforeConsent: { name: string; domain: string; thirdParty: boolean }[];
+  /** http:// resources requested by https:// pages. */
+  mixedContent: { page: string; url: string }[];
+  /** Requests refused by the robot (private addresses, unsupported schemes). */
+  blockedRequests: number;
+}
+
+export interface CrawledPage {
+  url: string;
+  status: number | null;
+  error?: string;
+  title?: string;
+  metaDescription?: string;
+  lang?: string;
+  h1: number;
+  canonical?: string;
+  noindex: boolean;
+  timing: { ttfbMs?: number; domContentLoadedMs?: number; loadMs?: number; lcpMs?: number; cls?: number };
+  bytes: number;
+  requests: number;
+  consoleErrors: number;
+  axe?: { violations: AxeViolation[]; passes: number; incomplete: number };
+}
+
+export interface AxeViolation {
+  id: string;
+  impact: "critical" | "serious" | "moderate" | "minor" | null;
+  help: string;
+  helpUrl: string;
+  tags: string[];
+  nodes: number;
 }
 
 export interface ParsedCookie {

@@ -4,7 +4,7 @@
   "description": "Passive, SSRF-safe web observation for PcyBox GoLive layer 3 checks (Node.js).",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": { ".": "./src/index.ts", "./guard": "./src/guard.ts" },
   "scripts": { "typecheck": "tsc -p .", "test": "vitest run" },
   "dependencies": {
     "@golive/packs-sdk": "workspace:*",

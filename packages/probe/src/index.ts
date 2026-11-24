@@ -4,7 +4,7 @@ import { Agent, fetch, type Response } from "undici";
 import type { ParsedCookie, WebObservation } from "@golive/packs-sdk";
 import { assertUrlAllowed, guardedLookup, type GuardOptions } from "./guard";
 
-export { BlockedAddressError, isBlockedIp } from "./guard";
+export { assertUrlAllowed, BlockedAddressError, isBlockedIp, type GuardOptions } from "./guard";
 
 export const USER_AGENT = "PcyBoxGoLiveBot/0.1 (passive pre-production audit)";
 

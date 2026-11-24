@@ -1,5 +1,5 @@
-import { definePack, defineRule, evidence, fail, pass, warn } from "@golive/packs-sdk";
-import { withWeb } from "./util";
+import { definePack, defineRule, evidence, fail, pass, warn, type AxeViolation, type Finding, type Severity } from "@golive/packs-sdk";
+import { pathOf, plural, withCrawl, withWeb } from "./util";
 
 const wcag = (sc: string, slug: string) => ({
   label: `WCAG 2.2, critère ${sc}`,
@@ -106,6 +106,45 @@ export const accessibility = definePack({
       fix: "Publiez une page « Accessibilité » : niveau de conformité, contenus non accessibles, contact et voie de recours.",
       applies: (ctx) => ctx.spec.project.type === "public-service" || ctx.spec.project.type === "ecommerce",
       check: () => evidence("Joignez le lien vers la déclaration d'accessibilité."),
+    }),
+
+    defineRule({
+      id: "a11y.axe",
+      title: "Contrôle automatique WCAG sur les pages parcourues",
+      why: "Contrastes, libellés de formulaires, noms de boutons, structure : une partie des critères WCAG se vérifie automatiquement sur chaque page.",
+      layer: 3,
+      category: "quality",
+      severity: "major",
+      method: "auto",
+      source: { label: "axe-core, règles WCAG 2.2 A et AA", url: "https://dequeuniversity.com/rules/axe/" },
+      fix: "Corrigez chaque problème listé en suivant la fiche axe-core liée, puis relancez l'audit complet.",
+      applies: (ctx) => ctx.spec.project.audience !== "internal",
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          const audited = crawl.pages.filter((p) => p.axe);
+          if (!audited.length) return warn("axe-core n'a pu s'exécuter sur aucune page.");
+          const byId = new Map<string, { v: AxeViolation; pages: string[]; nodes: number }>();
+          for (const page of audited)
+            for (const v of page.axe!.violations) {
+              const e = byId.get(v.id) ?? { v, pages: [], nodes: 0 };
+              e.pages.push(pathOf(page.url));
+              e.nodes += v.nodes;
+              byId.set(v.id, e);
+            }
+          if (!byId.size) return pass(`Aucune violation automatique sur ${plural(audited.length, "page")}.`);
+          const rank = { critical: 0, serious: 1, moderate: 2, minor: 3 } as const;
+          const sev = (i: AxeViolation["impact"]): Severity => (i === "critical" || i === "serious" ? "major" : i === "moderate" ? "minor" : "info");
+          return [...byId.values()]
+            .sort((a, b) => (rank[a.v.impact ?? "minor"] - rank[b.v.impact ?? "minor"]) || b.nodes - a.nodes)
+            .slice(0, 30)
+            .map(
+              ({ v, pages, nodes }): Finding =>
+                fail(`${v.help} : ${plural(nodes, "élément")} sur ${plural(pages.length, "page")} (${pages.slice(0, 3).join(", ")}${pages.length > 3 ? "…" : ""}).`, {
+                  severity: sev(v.impact),
+                  observed: `${v.id} · ${v.impact ?? "?"} · ${v.helpUrl}`,
+                }),
+            );
+        }),
     }),
   ],
 });

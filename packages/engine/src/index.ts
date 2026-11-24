@@ -333,3 +333,4 @@ export function findingsByTarget(report: Report) {
 
 export { COMMUNITY_PACKS, PROFILE_ALIASES };
 export type { Category, Finding, Layer, Pack, RepoObservation, Rule, Severity, Status, WebObservation };
+export { reconcileTasks, type TaskColumn, type TaskState } from "./tasks";
