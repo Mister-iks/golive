@@ -1,0 +1,64 @@
+name: PcyBox GoLive
+description: Go / No-Go gate before production. Checks the declared architecture, the repository and the live site.
+author: PcyBox
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  spec:
+    description: Path to the golive.yaml file.
+    default: golive.yaml
+  repo:
+    description: Scan the repository (secrets, vulnerable dependencies, containers). "true" or "false".
+    default: "true"
+  url:
+    description: URL to audit passively (optional).
+    default: ""
+  env:
+    description: Environment of the audited URL, prod or preprod.
+    default: preprod
+  fail-on:
+    description: Verdict that fails the step, no-go, conditional or never.
+    default: no-go
+  offline:
+    description: Do not query the online vulnerability database (osv.dev). "true" or "false".
+    default: "false"
+  version:
+    description: Version of @pcybox/golive to run.
+    default: latest
+  cli:
+    description: Path to a local golive.js instead of the published package (used to test the action itself).
+    default: ""
+
+outputs:
+  report:
+    description: Path to the JSON report.
+    value: ${{ steps.check.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - id: check
+      shell: bash
+      env:
+        GL_SPEC: ${{ inputs.spec }}
+        GL_REPO: ${{ inputs.repo }}
+        GL_URL: ${{ inputs.url }}
+        GL_ENV: ${{ inputs.env }}
+        GL_FAIL_ON: ${{ inputs.fail-on }}
+        GL_OFFLINE: ${{ inputs.offline }}
+        GL_VERSION: ${{ inputs.version }}
+        GL_CLI: ${{ inputs.cli }}
+      run: |
+        set -o pipefail
+        args=(check "$GL_SPEC" --format markdown --fail-on "$GL_FAIL_ON" --output "$RUNNER_TEMP/golive-report.json")
+        [ "$GL_REPO" = "true" ] && args+=(--repo .)
+        [ -n "$GL_URL" ] && args+=(--url "$GL_URL" --env "$GL_ENV")
+        [ "$GL_OFFLINE" = "true" ] && args+=(--offline)
+        echo "report=$RUNNER_TEMP/golive-report.json" >> "$GITHUB_OUTPUT"
+        if [ -n "$GL_CLI" ]; then cmd=(node "$GL_CLI"); else cmd=(npx --yes "@pcybox/golive@$GL_VERSION"); fi
+        "${cmd[@]}" "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -53,7 +53,7 @@ pnpm dev                    # application web et worker d'audit
 En ligne de commande :
 
 ```bash
-pnpm --filter @golive/cli build
+pnpm --filter @pcybox/golive build
 node apps/cli/dist/golive.js init --template public-service
 node apps/cli/dist/golive.js check --repo . --url https://preprod.exemple.sn --env preprod
 ```
@@ -64,4 +64,4 @@ Le rapport PcyBox GoLive atteste d'un contrôle à une date donnée. Il ne const
 
 ## Licences
 
-Serveur, application web, moteur et sonde : AGPL-3.0. Format GoLive Spec, SDK de règles, packs communautaires et CLI : Apache-2.0. Voir [README.md](README.md#license).
+Serveur, application web, worker, moteur, sondes, scanner et CLI publiée (elle embarque le moteur) : AGPL-3.0. Format GoLive Spec, SDK de règles et packs communautaires : Apache-2.0. Voir [README.md](README.md#license).

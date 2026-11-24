@@ -50,8 +50,11 @@ jobs:
           node "$cli" init --template saas-b2b
           node "$cli" validate
           node "$cli" check --as-of 2026-11-24 --fail-on never
-      - name: PcyBox GoLive checks itself
-        run: node apps/cli/dist/golive.js check --repo . --format markdown --fail-on never >> "$GITHUB_STEP_SUMMARY"
+      - name: PcyBox GoLive checks itself (through the reusable action)
+        uses: ./
+        with:
+          cli: apps/cli/dist/golive.js
+          fail-on: never
 
   docker:
     runs-on: ubuntu-latest

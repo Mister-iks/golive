@@ -66,17 +66,30 @@ Requires Node.js 22+ and pnpm 11+. Locally the robot uses the bundled Chromium i
 
 ### CLI
 
+Published on npm as [`@pcybox/golive`](https://www.npmjs.com/package/@pcybox/golive):
+
 ```bash
-pnpm --filter @golive/cli build
-node apps/cli/dist/golive.js init --template ecommerce
-node apps/cli/dist/golive.js check                      # layer 1 (architecture)
-node apps/cli/dist/golive.js check --repo .             # + layer 2 (secrets, dependencies, containers)
-node apps/cli/dist/golive.js check --url https://example.com --env preprod
-node apps/cli/dist/golive.js check --format markdown    # for a PR comment
-node apps/cli/dist/golive.js rules                      # browse the catalogue
+npx @pcybox/golive init --template ecommerce
+npx @pcybox/golive check                      # layer 1 (architecture)
+npx @pcybox/golive check --repo .             # + layer 2 (secrets, dependencies, containers)
+npx @pcybox/golive check --url https://example.com --env preprod
+npx @pcybox/golive check --format markdown    # for a PR comment
+npx @pcybox/golive rules                      # browse the catalogue
 ```
 
 Exit codes: `0` Go, `1` No-Go (or Conditional with `--fail-on conditional`), `2` invalid spec.
+
+### GitHub Action
+
+```yaml
+- uses: actions/checkout@v4
+- uses: Mister-iks/golive@v1
+  with:
+    url: https://preprod.example.com   # optional passive audit
+    fail-on: no-go
+```
+
+The report is added to the job summary. Inputs: `spec`, `repo`, `url`, `env`, `fail-on`, `offline`, `version`. For GitLab CI and others, run `npx -y @pcybox/golive check --repo .` in a `node:22` image.
 
 ## A `golive.yaml`
 
@@ -131,7 +144,7 @@ The verdict never depends on an AI. Legal findings always carry a "to be validat
 apps/
   web/            Next.js app and API: Studio, checks, board, report, teams (AGPL-3.0)
   worker/         Audit worker: runs queued audits, applies migrations (AGPL-3.0)
-  cli/            golive command line (Apache-2.0)
+  cli/            golive command line, published as @pcybox/golive (AGPL-3.0)
 packages/
   spec/           GoLive Spec schema, parser, catalogue, templates (Apache-2.0)
   packs-sdk/      Rule and pack SDK (Apache-2.0)
@@ -170,6 +183,6 @@ Security issues: see [SECURITY.md](SECURITY.md).
 
 ## License
 
-- Server, web app, engine and probe: [AGPL-3.0](LICENSE).
-- GoLive Spec, packs SDK, community packs and CLI: [Apache-2.0](packages/spec/LICENSE).
+- Server, web app, worker, engine, probe, robot, scanner and the published CLI (it bundles the engine): [AGPL-3.0](LICENSE).
+- GoLive Spec, packs SDK and community packs: [Apache-2.0](packages/spec/LICENSE). Your own rules and integrations built on them can use any license.
 - The PcyBox GoLive name and logo are not covered by these licenses. Forks are welcome under another name.

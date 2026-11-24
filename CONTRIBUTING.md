@@ -35,4 +35,4 @@ Commit messages start with the area (`spec`, `engine`, `packs`, `probe`, `cli`, 
 
 ## Licensing of contributions
 
-Contributions to `packages/spec`, `packages/packs-sdk`, `packs` and `apps/cli` are licensed Apache-2.0. Contributions to the rest of the repository are licensed AGPL-3.0.
+Contributions to `packages/spec`, `packages/packs-sdk` and `packs` are licensed Apache-2.0. Contributions to the rest of the repository are licensed AGPL-3.0.
