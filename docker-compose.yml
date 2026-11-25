@@ -2,22 +2,47 @@
 #   cp .env.example .env    then set BETTER_AUTH_SECRET (openssl rand -base64 32)
 #   docker compose up --build
 # Open http://localhost:3000 and create the first account.
+# Operations (backups, restore, monitoring, TLS): docs/operations.md
 
 x-env: &env
   DATABASE_URL: postgres://golive:${POSTGRES_PASSWORD:-golive}@db:5432/golive
+  # Connections to PostgreSQL are encrypted and the server certificate is verified.
+  DATABASE_SSL_CA: /tls/server.crt
   GOLIVE_URL: ${GOLIVE_URL:-http://localhost:3000}
   GOLIVE_ALLOW_PRIVATE: ${GOLIVE_ALLOW_PRIVATE:-0}
   GOLIVE_SKIP_DOMAIN_VERIFICATION: ${GOLIVE_SKIP_DOMAIN_VERIFICATION:-0}
 
+x-tls: &tls
+  - pgtls:/tls:ro
+
 services:
+  # Creates, once, the certificate PostgreSQL presents to the other services.
+  tls:
+    image: postgres:17
+    command:
+      - sh
+      - -c
+      - >-
+        set -e; cd /tls;
+        if [ ! -f server.key ]; then
+        openssl req -new -x509 -days 3650 -nodes -subj /CN=db -addext subjectAltName=DNS:db -keyout server.key -out server.crt;
+        fi;
+        chown 999:999 server.key server.crt; chmod 600 server.key; chmod 644 server.crt
+    volumes:
+      - pgtls:/tls
+
   db:
-    image: postgres:17-alpine
+    image: postgres:17
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/tls/server.crt", "-c", "ssl_key_file=/tls/server.key"]
     environment:
       POSTGRES_USER: golive
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-golive}
       POSTGRES_DB: golive
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - pgtls:/tls:ro
+    depends_on:
+      tls: { condition: service_completed_successfully }
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U golive -d golive"]
       interval: 3s
@@ -31,6 +56,7 @@ services:
     image: golive-worker:local
     command: ["node", "dist/worker.js", "--migrate-only"]
     environment: *env
+    volumes: *tls
     depends_on:
       db: { condition: service_healthy }
 
@@ -45,6 +71,7 @@ services:
       GOLIVE_REQUIRE_MFA: ${GOLIVE_REQUIRE_MFA:-1}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
+    volumes: *tls
     depends_on:
       migrate: { condition: service_completed_successfully }
     read_only: true
@@ -61,6 +88,8 @@ services:
       GOLIVE_MIGRATE: "0"
       GOLIVE_MAX_PAGES: ${GOLIVE_MAX_PAGES:-20}
       GOLIVE_WORKER_CONCURRENCY: ${GOLIVE_WORKER_CONCURRENCY:-2}
+      GOLIVE_LIGHTHOUSE: ${GOLIVE_LIGHTHOUSE:-1}
+    volumes: *tls
     depends_on:
       migrate: { condition: service_completed_successfully }
     # Chromium needs shared memory; the robot never needs to write outside /tmp.
@@ -72,5 +101,36 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
 
+  # Daily dump of the database in ./backups (GOLIVE_BACKUP_DIR), kept 14 days.
+  # Copy that folder to another machine: a backup on the same disk does not survive a disk failure.
+  backup:
+    image: postgres:17
+    environment:
+      PGHOST: db
+      PGUSER: golive
+      PGPASSWORD: ${POSTGRES_PASSWORD:-golive}
+      PGDATABASE: golive
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /tls/server.crt
+      KEEP_DAYS: ${GOLIVE_BACKUP_KEEP_DAYS:-14}
+      EVERY_SECONDS: ${GOLIVE_BACKUP_EVERY_SECONDS:-86400}
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        while true; do
+        f=/backups/golive-$$(date +%Y%m%d-%H%M%S).dump;
+        if pg_dump --format=custom --file="$$f.part"; then mv "$$f.part" "$$f"; echo "backup written: $$f"; else rm -f "$$f.part"; echo "backup FAILED" >&2; fi;
+        find /backups -name 'golive-*.dump' -mtime +$$KEEP_DAYS -delete;
+        sleep $$EVERY_SECONDS;
+        done
+    volumes:
+      - pgtls:/tls:ro
+      - ${GOLIVE_BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  pgtls:

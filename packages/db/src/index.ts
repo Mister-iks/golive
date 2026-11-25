@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { PgBoss } from "pg-boss";
 export type { PgBoss } from "pg-boss";
+import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import * as schema from "./schema";
 
@@ -19,9 +20,21 @@ export interface Database {
   close: () => Promise<void>;
 }
 
+/**
+ * TLS towards PostgreSQL, from the environment:
+ * DATABASE_SSL=require encrypts the connection; DATABASE_SSL_CA=<file> also verifies the
+ * server certificate (and its host name) against that CA, as docker-compose.yml does.
+ */
+export function tlsOptions(): false | { rejectUnauthorized: boolean; ca?: string } {
+  const ca = process.env.DATABASE_SSL_CA;
+  if (ca) return { rejectUnauthorized: true, ca: readFileSync(ca, "utf8") };
+  if (process.env.DATABASE_SSL === "require") return { rejectUnauthorized: false };
+  return false;
+}
+
 export function connect(url = requireUrl(), options: { max?: number } = {}): Database {
   // search_path is pinned: a role named "golive" would otherwise resolve tables in the golive schema first.
-  const client = postgres(url, { max: options.max ?? 10, onnotice: () => {}, connection: { search_path: "public" } });
+  const client = postgres(url, { max: options.max ?? 10, onnotice: () => {}, connection: { search_path: "public" }, ssl: tlsOptions() });
   const db = drizzle(client, { schema });
   return { db, client, url, close: () => client.end({ timeout: 5 }) };
 }
@@ -54,7 +67,7 @@ export interface AuditJob {
 
 /** Job queue stored in the same PostgreSQL database (schema pgboss). */
 export async function startQueue(url = requireUrl()): Promise<PgBoss> {
-  const boss = new PgBoss({ connectionString: url, max: 3 });
+  const boss = new PgBoss({ connectionString: url, max: 3, ssl: tlsOptions() || undefined });
   boss.on("error", (e) => console.error("[queue]", e.message));
   await boss.start();
   await boss.createQueue(AUDIT_QUEUE, { retryLimit: 1, retryDelay: 30, expireInSeconds: 600 });

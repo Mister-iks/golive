@@ -26,6 +26,26 @@ export const auth = betterAuth({
   telemetry: { enabled: false },
   rateLimit: { enabled: true, window: 60, max: 60 },
   session: { expiresIn: 60 * 60 * 24 * 14, updateAge: 60 * 60 * 24 },
+  // Right to erasure: people delete their own account from My account. Their activity log
+  // entries stay but lose the link to them (see migration 0003).
+  user: {
+    deleteUser: {
+      enabled: true,
+      beforeDelete: async (user, request) => {
+        const owned = await db().select({ orgId: orgMembers.orgId }).from(orgMembers).where(and(eq(orgMembers.userId, user.id), eq(orgMembers.role, "owner")));
+        if (owned.length) {
+          const fr = langOf(request) === "fr";
+          throw new APIError("FORBIDDEN", {
+            message: fr
+              ? "Vous êtes propriétaire de l'organisation : nommez d'abord un autre propriétaire dans Organisation, Membres."
+              : "You own the organization: first make someone else an owner in Organization, Members.",
+          });
+        }
+        const orgs = await db().select({ orgId: orgMembers.orgId }).from(orgMembers).where(eq(orgMembers.userId, user.id));
+        for (const o of orgs) await logActivity(db(), { orgId: o.orgId, actorId: user.id, action: "account.deleted" });
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,

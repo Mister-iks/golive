@@ -43,14 +43,21 @@ components:
     tech: postgresql@17
     zone: host
     notes: Row level security per organization; also hosts the job queue (pg-boss).
+  - id: backup
+    kind: backup
+    name: Daily database dump
+    tech: pg_dump
+    zone: host
+    notes: Written to ./backups on the host, kept 14 days. The operator copies it off the host (docs/operations.md).
   - id: mail
     kind: email
     name: SMTP relay
     tech: smtp
 links:
   - { from: team, to: web, protocol: https }
-  - { from: web, to: db, protocol: postgres, sensitivity: personal }
-  - { from: worker, to: db, protocol: postgres }
+  - { from: web, to: db, protocol: postgres-tls, sensitivity: personal }
+  - { from: worker, to: db, protocol: postgres-tls }
+  - { from: db, to: backup, protocol: postgres-tls, sensitivity: personal }
   - { from: worker, to: sites, protocol: https }
   - { from: web, to: mail, protocol: smtps, sensitivity: personal }
 layout:
@@ -59,4 +66,5 @@ layout:
   worker: [ 260, 300 ]
   db: [ 540, 200 ]
   mail: [ 540, 20 ]
+  backup: [ 800, 200 ]
   sites: [ 0, 320 ]

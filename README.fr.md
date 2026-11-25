@@ -41,6 +41,8 @@ docker compose up --build
 # puis http://localhost:3000 et créez le premier compte
 ```
 
+Sauvegardes, restauration, supervision (`/api/health`) et mises à jour : [docs/operations.md](docs/operations.md).
+
 Depuis les sources (Node.js 22+, pnpm 11+, PostgreSQL 15+) :
 
 ```bash

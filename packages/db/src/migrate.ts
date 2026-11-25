@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
-import { requireUrl } from "./index";
+import { requireUrl, tlsOptions } from "./index";
 
 /* ------------------------------------------------------------ migrations */
 
@@ -10,7 +10,7 @@ const DEFAULT_DIR = () => process.env.GOLIVE_MIGRATIONS_DIR ?? fileURLToPath(new
 
 /** Applies pending migrations/*.sql in order, once, under an advisory lock. */
 export async function migrate(url = requireUrl(), dir = DEFAULT_DIR()): Promise<string[]> {
-  const client = postgres(url, { max: 1, onnotice: () => {}, connection: { search_path: "public" } });
+  const client = postgres(url, { max: 1, onnotice: () => {}, connection: { search_path: "public" }, ssl: tlsOptions() });
   const applied: string[] = [];
   try {
     await client`select pg_advisory_lock(727274)`;

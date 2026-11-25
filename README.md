@@ -52,7 +52,7 @@ docker compose up --build
 # open http://localhost:3000 and create the first account
 ```
 
-The stack is PostgreSQL, the web app and the audit worker (official Playwright image). No external account or SaaS dependency. Without `SMTP_URL`, invitation links are shown in the interface so you can pass them on yourself.
+The stack is PostgreSQL (TLS between services), the web app, the audit worker (official Playwright image) and a daily backup job. No external account or SaaS dependency. Without `SMTP_URL`, invitation links are shown in the interface so you can pass them on yourself. Backups, restore, monitoring (`/api/health`) and upgrades: [docs/operations.md](docs/operations.md).
 
 ### From source
 

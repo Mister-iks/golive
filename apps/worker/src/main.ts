@@ -1,5 +1,7 @@
 import { AUDIT_QUEUE, audits, and, connect, inArray, sql, startQueue, type AuditJob } from "@golive/db";
 import { migrate } from "@golive/db/migrate";
+import { hostname } from "node:os";
+import { ENGINE_VERSION } from "@golive/engine";
 import { runAudit } from "./audit";
 
 const env = process.env;
@@ -36,8 +38,18 @@ async function main() {
   });
   console.log(`[worker] ready · ${concurrency} parallel audit(s) · ${settings.maxPages} pages max${settings.allowPrivate ? " · private addresses allowed" : ""}`);
 
+  // Heartbeat read by /api/health: monitoring sees a stopped or stuck worker.
+  const id = `${hostname()}:${process.pid}`;
+  const beat = () =>
+    database.client`insert into golive.worker_heartbeat (id, seen_at, version) values (${id}, now(), ${ENGINE_VERSION})
+      on conflict (id) do update set seen_at = now(), version = excluded.version`.catch((e: Error) => console.error("[worker] heartbeat:", e.message));
+  await beat();
+  const timer = setInterval(beat, 30_000);
+
   const stop = async () => {
     console.log("[worker] stopping…");
+    clearInterval(timer);
+    await database.client`delete from golive.worker_heartbeat where id = ${id}`.catch(() => {});
     await boss.stop({ graceful: true, timeout: 30_000 });
     await database.close();
     process.exit(0);

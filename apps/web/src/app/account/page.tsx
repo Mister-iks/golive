@@ -20,6 +20,7 @@ export default function AccountPage() {
           <TwoFactor />
           <Profile />
           <Password />
+          <DeleteAccount />
         </div>
       </div>
     </Shell>
@@ -378,6 +379,55 @@ function Password() {
           </Button>
         </div>
       </form>
+    </Card>
+  );
+}
+
+function DeleteAccount() {
+  const { org } = useMe();
+  const m = useMessages(accountMessages);
+  const t = m.deletion;
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+  const owner = org?.role === "owner";
+  return (
+    <Card title={t.title}>
+      <div className="flex flex-col gap-3 p-4">
+        <p className="text-[13px] leading-relaxed text-fg-2">{t.body}</p>
+        {owner && <p className="text-[13px] text-amber-ink">{t.owner}</p>}
+        <div>
+          <Button variant="danger" disabled={owner} onClick={() => setOpen(true)}>
+            {t.button}
+          </Button>
+        </div>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen} title={t.confirmTitle} description={t.confirmBody} width={420}>
+        <form
+          className="flex flex-col gap-3 p-5"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setBusy(true);
+            setError(undefined);
+            const { error } = await authClient.deleteUser({ password });
+            setBusy(false);
+            if (error) return setError(errText(m.wrongPassword, error, t.failed));
+            location.assign("/login");
+          }}
+        >
+          <Input type="password" autoComplete="current-password" autoFocus required value={password} onChange={(e) => setPassword(e.target.value)} aria-label={m.password.current} />
+          {error && <p className="text-[13px] text-red-ink">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <Button type="button" onClick={() => setOpen(false)}>
+              {t.cancel}
+            </Button>
+            <Button type="submit" variant="danger" disabled={busy || !password}>
+              {t.confirm}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </Card>
   );
 }

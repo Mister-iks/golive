@@ -19,3 +19,6 @@ next-env.d.ts
 
 # Local test credentials, never committed
 *.local.md
+
+# Database dumps made by the backup service
+backups/

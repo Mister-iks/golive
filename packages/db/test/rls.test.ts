@@ -104,6 +104,17 @@ d("row level security", () => {
     ).rejects.toThrow();
   });
 
+  it("lets an account deletion anonymise its log entries, and nothing else", async () => {
+    await database.db.insert(users).values({ id: "dave", name: "Dave", email: "dave@example.test" });
+    await database.db.insert(activityLog).values({ orgId: "org-a", actorId: "dave", action: "spec.updated", target: "A1" });
+    await expect(database.db.execute(sql`update activity_log set action = 'forged' where actor_id = 'dave'`)).rejects.toMatchObject({
+      cause: { message: expect.stringMatching(/append only/) },
+    });
+    await database.db.delete(users).where(eq(users.id, "dave"));
+    const rows = await database.db.execute<{ actor_id: string | null; action: string }>(sql`select actor_id, action from activity_log where target = 'A1'`);
+    expect(rows.map((r) => [r.actor_id, r.action])).toEqual([[null, "spec.updated"]]);
+  });
+
   it("migrations are idempotent", async () => {
     expect(await migrate(URL!)).toEqual([]);
   });

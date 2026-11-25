@@ -71,5 +71,13 @@ jobs:
         run: |
           docker compose up -d --wait web worker
           curl -fsS http://localhost:3000/api/config
+          # The worker sends a heartbeat at start-up; give it a few seconds.
+          for i in $(seq 1 20); do curl -fsS http://localhost:3000/api/health && break; sleep 3; done
+          curl -fsS http://localhost:3000/api/health
+          # Every client connection to PostgreSQL is encrypted.
+          test "$(docker compose exec -T db psql -U golive -d golive -tAc "select count(*) from pg_stat_ssl s join pg_stat_activity a using (pid) where a.datname = 'golive' and a.usename = 'golive' and not s.ssl and a.pid <> pg_backend_pid()")" = "0"
+          # One real backup through the backup service (TLS with certificate check).
+          docker compose run --rm --entrypoint pg_dump backup --format=custom --file=/backups/ci.dump
+          test -s backups/ci.dump
           docker compose logs migrate worker | tail -20
           docker compose down -v
