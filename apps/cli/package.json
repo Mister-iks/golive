@@ -45,7 +45,7 @@
     "typecheck": "tsc -p ."
   },
   "devDependencies": {
-    "commander": "^14.0.3",
+    "commander": "^15.1.0",
     "picocolors": "^1.1.1",
     "@golive/engine": "workspace:*",
     "@golive/packs": "workspace:*",
