@@ -42,7 +42,7 @@ describe("secrets", () => {
     const root = repo({
       "docker.env.example": "DB_PASSWORD=supersecretvalue",
       ".env.example": "API_KEY=supersecretvalue",
-      "a.ts": 'const url = "postgres://app:${DB_PASSWORD}@db:5432/app";\nconst b = "postgres://app:changeme@db/app";',
+      "a.ts": 'const url = "postgres://app:${DB_PASSWORD}@db:5432/app";\nconst b = "postgres://app:changeme@db/app";\nconst c = "postgres://golive:golive@localhost:5432/golive";\nconst d = "postgres://postgres:postgres@db/app";',
       "b.ts": `const k = "${AWS}"; // golive:allow test fixture`,
     });
     expect(scanSecrets(root, [".env.example", "a.ts", "b.ts"], new Set())).toEqual([]);

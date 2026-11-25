@@ -11,6 +11,8 @@ interface Pattern {
   accept?: (m: RegExpExecArray) => boolean;
 }
 
+const DEV_DEFAULT = /^(postgres|postgresql|root|admin|mysql|mariadb|mongo|mongodb|redis|guest|pass|pass123|password123|local|localdev|devpass)$/i;
+
 const PLACEHOLDER = /^(x+|\*+|\.+|changeme|change-me|password|passwd|secret|example|your[_-].*|<.*>|\$\{.*\}|\{\{.*\}\}|%.*%|todo|null|none|test|dummy|redacted)$/i;
 
 /**
@@ -32,8 +34,13 @@ const PATTERNS: Pattern[] = [
   {
     rule: "database-url-password",
     description: "Database URL with a password",
-    re: /\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?):\/\/[^:\s/@"'`]+:([^@\s"'`]{4,})@[^\s"'`]+/,
-    accept: (m) => !PLACEHOLDER.test(m[1] ?? "") && !/[$<{%]/.test(m[1] ?? ""),
+    re: /\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?):\/\/([^:\s/@"'`]+):([^@\s"'`]{4,})@[^\s"'`]+/,
+    // Development conventions are not secrets: a password equal to the user name ("golive:golive") or a default one ("postgres").
+    accept: (m) => {
+      const user = m[1] ?? "";
+      const pass = m[2] ?? "";
+      return !PLACEHOLDER.test(pass) && !/[$<{%]/.test(pass) && pass.toLowerCase() !== user.toLowerCase() && !DEV_DEFAULT.test(pass);
+    },
   },
 ];
 

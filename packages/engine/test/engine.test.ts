@@ -384,3 +384,13 @@ describe("lighthouse", () => {
     expect(run(undefined).status).toBe("not-run");
   });
 });
+
+describe("docs/writing-rules.md example", () => {
+  it("works as written", () => {
+    const spec = load("saas-b2b");
+    const withoutMonitoring = { ...spec, components: spec.components.filter((c) => c.kind !== "monitoring") };
+    const r = evaluate(withoutMonitoring, { asOf: AS_OF }).results.find((x) => x.ruleId === "core.arch.monitoring")!;
+    expect(r.status).toBe("fail");
+    expect(evaluate(withoutMonitoring, { asOf: AS_OF, lang: "fr" }).results.find((x) => x.ruleId === "core.arch.monitoring")!.title).toBe("Le service est supervisé");
+  });
+});

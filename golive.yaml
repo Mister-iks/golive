@@ -1,32 +1,62 @@
-# PcyBox GoLive checks itself. Run: golive check --repo .
+# PcyBox GoLive checks itself on every push: golive check --repo .
+# This describes the reference installation (docker-compose.yml): one host, used by a team.
 spec: golive/v1
 project:
   name: PcyBox GoLive Community
-  type: saas
-  description: Self-hosted go / no-go platform. Projects are stored in the user's browser.
+  type: internal-tool
+  description: Self-hosted go / no-go platform for a team. Web app, audit worker and PostgreSQL on one Docker host.
   countries: [ SN, FR ]
-  languages: [ fr ]
-  audience: public
+  languages: [ en, fr ]
+  audience: internal
+data:
+  # Team accounts: name and e-mail.
+  personal: [ identity, contact ]
+features: [ accounts, admin, email ]
+zones:
+  - id: host
+    name: Docker host
+    network: private
 actors:
-  - id: user
+  - id: team
     kind: user
-    name: Équipes projet
+    name: Team members
+  - id: sites
+    kind: system
+    name: Audited sites
 components:
   - id: web
     kind: frontend
-    name: Application web
+    name: Web app and API
     tech: nextjs@16
     runtime: nodejs@22
-  - id: probe
+    zone: host
+  - id: worker
     kind: backend
-    name: Robot d'audit
-    tech: nextjs@16
+    name: Audit worker
+    tech: playwright@1.65
     runtime: nodejs@22
-    notes: Passive GET requests only, SSRF guarded, rate limited.
+    zone: host
+    notes: Passive GET requests only, through an SSRF-guarded proxy. Full audits need proof of domain ownership.
+  - id: db
+    kind: database
+    name: PostgreSQL
+    tech: postgresql@17
+    zone: host
+    notes: Row level security per organization; also hosts the job queue (pg-boss).
+  - id: mail
+    kind: email
+    name: SMTP relay
+    tech: smtp
 links:
-  - { from: user, to: web, protocol: https }
-  - { from: web, to: probe, protocol: internal }
+  - { from: team, to: web, protocol: https }
+  - { from: web, to: db, protocol: postgres, sensitivity: personal }
+  - { from: worker, to: db, protocol: postgres }
+  - { from: worker, to: sites, protocol: https }
+  - { from: web, to: mail, protocol: smtps, sensitivity: personal }
 layout:
-  user: [ 0, 120 ]
+  team: [ 0, 120 ]
   web: [ 260, 100 ]
-  probe: [ 540, 100 ]
+  worker: [ 260, 300 ]
+  db: [ 540, 200 ]
+  mail: [ 540, 20 ]
+  sites: [ 0, 320 ]
