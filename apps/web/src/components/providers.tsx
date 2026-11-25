@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { LangProvider } from "@/i18n/client";
+import type { Lang } from "@/i18n";
 import { TooltipPrimitive } from "./ui";
 
 export type ThemePref = "system" | "light" | "dark";
@@ -8,7 +10,7 @@ export type ThemePref = "system" | "light" | "dark";
 const ThemeCtx = createContext<{ pref: ThemePref; set: (p: ThemePref) => void }>({ pref: "system", set: () => {} });
 export const useTheme = () => useContext(ThemeCtx);
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, lang }: { children: ReactNode; lang: Lang }) {
   const [pref, setPref] = useState<ThemePref>("system");
 
   useEffect(() => {
@@ -36,8 +38,10 @@ export function Providers({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <ThemeCtx.Provider value={{ pref, set }}>
-      <TooltipPrimitive.Provider>{children}</TooltipPrimitive.Provider>
-    </ThemeCtx.Provider>
+    <LangProvider initial={lang}>
+      <ThemeCtx.Provider value={{ pref, set }}>
+        <TooltipPrimitive.Provider>{children}</TooltipPrimitive.Provider>
+      </ThemeCtx.Provider>
+    </LangProvider>
   );
 }

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Wordmark } from "./brand";
+import { LangSwitch } from "./lang-switch";
 
 const SAMPLE: [string, "ok" | "ko" | "proof", string][] = [
   ["ok", "ok", "TLS 1.3, certificat valide 74 jours"],
@@ -15,7 +16,10 @@ export function AuthFrame({ title, subtitle, children, footer }: { title: string
   return (
     <div className="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <div className="flex flex-col px-6 py-6 sm:px-10">
-        <Wordmark />
+        <div className="flex items-center justify-between">
+          <Wordmark />
+          <LangSwitch />
+        </div>
         <div className="mx-auto flex w-full max-w-[360px] flex-1 flex-col justify-center py-12">
           <h1 className="text-[22px] font-semibold tracking-[-0.02em]">{title}</h1>
           {subtitle && <p className="mt-1.5 text-[13.5px] leading-relaxed text-fg-3">{subtitle}</p>}

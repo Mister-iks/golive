@@ -13,6 +13,9 @@ import {
   type Source,
   type Status,
   type WebObservation,
+  tr,
+  DEFAULT_MESSAGES_FR,
+  type Lang,
 } from "@golive/packs-sdk";
 import type { Evidence, Spec, Waiver } from "@golive/spec";
 
@@ -43,6 +46,8 @@ export interface RuleResult {
 export interface Report {
   engine: string;
   asOf: string;
+  /** Language of the texts in this report. */
+  lang: Lang;
   fingerprint: string;
   project: { name: string; type: string };
   packs: { id: string; name: string; version: string; reviewedAt?: string; stale: boolean }[];
@@ -67,6 +72,8 @@ export interface EvaluateOptions {
   repo?: RepoObservation;
   /** Layer 3 observation. */
   web?: WebObservation;
+  /** Language of titles, explanations and messages (default English). Does not change the verdict. */
+  lang?: Lang;
 }
 
 export const SEVERITY_ORDER: Severity[] = ["blocker", "major", "minor", "info"];
@@ -76,12 +83,23 @@ const CREDIT: Partial<Record<Status, number>> = { pass: 1, warn: 0.5, fail: 0, e
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   architecture: "Architecture",
+  security: "Security",
+  data: "Data",
+  operations: "Operations",
+  quality: "Quality",
+  legal: "Legal compliance",
+};
+
+export const CATEGORY_LABELS_FR: Record<Category, string> = {
+  architecture: "Architecture",
   security: "Sécurité",
   data: "Données",
   operations: "Exploitation",
   quality: "Qualité",
   legal: "Conformité légale",
 };
+
+export const categoryLabels = (lang: Lang = "en") => (lang === "fr" ? CATEGORY_LABELS_FR : CATEGORY_LABELS);
 
 /** Packs applied to a spec: explicit profiles, otherwise sensible defaults. */
 export function selectPacks(spec: Spec, registry: Pack[] = COMMUNITY_PACKS): Pack[] {
@@ -110,7 +128,8 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
   const asOf = options.asOf ?? new Date().toISOString().slice(0, 10);
   const registry = options.registry ?? COMMUNITY_PACKS;
   const packs = selectPacks(spec, registry);
-  const ctx: RuleContext = { spec, graph: buildGraph(spec), asOf, repo: options.repo, web: options.web };
+  const lang: Lang = options.lang ?? "en";
+  const ctx: RuleContext = { spec, graph: buildGraph(spec), asOf, repo: options.repo, web: options.web, lang };
 
   const results: RuleResult[] = [];
   for (const pack of packs) {
@@ -126,7 +145,7 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
 
   const score = computeScore(results);
   const threshold = spec.project.criticality !== "standard" || spec.project.type === "public-service" ? 80 : 70;
-  const verdict = decide(results, score.global, threshold);
+  const verdict = decide(results, score.global, threshold, lang);
 
   // A layer is covered only when its input really exists (a repo scan for 2, a web observation for 3).
   const layers = [
@@ -146,6 +165,7 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
   return {
     engine: ENGINE_VERSION,
     asOf,
+    lang,
     fingerprint: fingerprint({
       spec: { ...spec, layout: undefined },
       packs: packs.map((p) => `${p.id}@${p.version}`),
@@ -156,7 +176,7 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
     project: { name: spec.project.name, type: spec.project.type },
     packs: packs.map((p) => ({
       id: p.id,
-      name: p.name,
+      name: (lang === "fr" && p.fr?.name) || p.name,
       version: p.version,
       reviewedAt: p.reviewedAt,
       stale: p.rules.some((r) => r.legal) && (!p.reviewedAt || daysSince(p.reviewedAt, asOf) > 365),
@@ -177,17 +197,18 @@ export function evaluate(spec: Spec, options: EvaluateOptions = {}): Report {
 }
 
 function runRule(pack: Pack, rule: Rule, ctx: RuleContext): RuleResult {
+  const fr = ctx.lang === "fr";
   const baseSeverity = typeof rule.severity === "function" ? rule.severity(ctx) : rule.severity;
   const base = {
     ruleId: rule.id,
     packId: pack.id,
-    title: rule.title,
-    why: rule.why,
-    fix: rule.fix,
+    title: (fr && rule.fr?.title) || rule.title,
+    why: (fr && rule.fr?.why) || rule.why,
+    fix: (fr && rule.fr?.fix) || rule.fix,
     layer: rule.layer,
     category: rule.category,
     method: rule.method,
-    source: rule.source,
+    source: fr && rule.fr?.source ? { ...rule.source, label: rule.fr.source } : rule.source,
     legal: !!rule.legal,
   };
 
@@ -206,16 +227,19 @@ function runRule(pack: Pack, rule: Rule, ctx: RuleContext): RuleResult {
     const out = rule.check(ctx);
     raw = Array.isArray(out) ? out : [out];
   } catch (err) {
-    raw = [{ status: "warn", message: `Erreur interne de la règle : ${(err as Error).message}` }];
+    raw = [{ status: "warn", message: tr(ctx, `Internal rule error: ${(err as Error).message}`, `Erreur interne de la règle : ${(err as Error).message}`) }];
   }
-  let findings = raw.map((f) => ({ ...f, severity: f.severity ?? baseSeverity }));
+  // Default helper messages (na, notRun, notScanned) are written in English and translated here.
+  let findings = raw.map((f) => ({ ...f, message: (fr && DEFAULT_MESSAGES_FR[f.message]) || f.message, severity: f.severity ?? baseSeverity }));
 
   // Manual evidence turns "evidence required" findings into passes.
   const proof = ctx.spec.evidence[rule.id];
   const attested = proof && findings.some((f) => f.status === "evidence") ? proof : undefined;
   if (attested) {
     findings = findings.map((f) =>
-      f.status === "evidence" ? { ...f, status: "pass" as const, message: `${f.message} Attesté par ${attested.by} le ${attested.date}.` } : f,
+      f.status === "evidence"
+        ? { ...f, status: "pass" as const, message: tr(ctx, `${f.message} Attested by ${attested.by} on ${attested.date}.`, `${f.message} Attesté par ${attested.by} le ${attested.date}.`) }
+        : f,
     );
   }
 
@@ -265,24 +289,25 @@ function computeScore(results: RuleResult[]): Report["score"] {
   return { global: pct(acc.get("all")), byCategory };
 }
 
-function decide(results: RuleResult[], score: number, threshold: number): Report["verdict"] {
+function decide(results: RuleResult[], score: number, threshold: number, lang: Lang): Report["verdict"] {
+  const ctx = { lang };
   const reasons: string[] = [];
   const blocking = results.filter((r) => r.blocking);
   const waived = results.filter((r) => r.waiver && r.severity === "blocker");
+  const s = (n: number) => (n > 1 ? "s" : "");
 
   if (blocking.length) {
-    reasons.push(`${blocking.length} contrôle${blocking.length > 1 ? "s" : ""} bloquant${blocking.length > 1 ? "s" : ""} non résolu${blocking.length > 1 ? "s" : ""}.`);
+    const n = blocking.length;
+    reasons.push(tr(ctx, `${n} unresolved blocking check${s(n)}.`, `${n} contrôle${s(n)} bloquant${s(n)} non résolu${s(n)}.`));
   }
-  if (score < threshold) reasons.push(`Score ${score} sous le seuil de ${threshold} requis pour ce profil.`);
+  if (score < threshold) reasons.push(tr(ctx, `Score ${score} below the threshold of ${threshold} required for this profile.`, `Score ${score} sous le seuil de ${threshold} requis pour ce profil.`));
   if (reasons.length) return { decision: "no-go", reasons };
 
   if (waived.length) {
-    return {
-      decision: "conditional",
-      reasons: [`${waived.length} bloquant${waived.length > 1 ? "s" : ""} couvert${waived.length > 1 ? "s" : ""} par une dérogation signée.`],
-    };
+    const n = waived.length;
+    return { decision: "conditional", reasons: [tr(ctx, `${n} blocker${s(n)} covered by a signed waiver.`, `${n} bloquant${s(n)} couvert${s(n)} par une dérogation signée.`)] };
   }
-  return { decision: "go", reasons: [`Aucun bloquant ouvert, score ${score} ≥ ${threshold}.`] };
+  return { decision: "go", reasons: [tr(ctx, `No open blocker, score ${score} ≥ ${threshold}.`, `Aucun bloquant ouvert, score ${score} ≥ ${threshold}.`)] };
 }
 
 function daysSince(date: string, asOf: string) {
@@ -332,5 +357,5 @@ export function findingsByTarget(report: Report) {
 }
 
 export { COMMUNITY_PACKS, PROFILE_ALIASES };
-export type { Category, Finding, Layer, Pack, RepoObservation, Rule, Severity, Status, WebObservation };
+export type { Category, Finding, Lang, Layer, Pack, RepoObservation, Rule, Severity, Status, WebObservation };
 export { reconcileTasks, type TaskColumn, type TaskState } from "./tasks";

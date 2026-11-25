@@ -1,8 +1,10 @@
 import type { ActorKind, ComponentKind } from "./schema";
 
+export type KindGroup = "clients" | "app" | "data" | "network" | "third-party" | "operations";
+
 export interface KindInfo {
   label: string;
-  group: "Clients" | "Applicatif" | "Données" | "Réseau" | "Services tiers" | "Exploitation";
+  group: KindGroup;
   /** Default reachability when nothing else says otherwise. */
   exposure: "public" | "private" | "managed";
   hint: string;
@@ -10,31 +12,143 @@ export interface KindInfo {
 }
 
 export const KINDS: Record<ComponentKind, KindInfo> = {
-  frontend: { label: "Front-end", group: "Clients", exposure: "public", hint: "Site ou application web servie au navigateur", techs: ["nextjs", "nuxt", "sveltekit", "astro", "react", "vue", "angular", "wordpress", "drupal"] },
-  mobile: { label: "App mobile", group: "Clients", exposure: "managed", hint: "Application iOS / Android", techs: ["react-native", "flutter", "swift", "kotlin", "expo"] },
-  backend: { label: "Back-end", group: "Applicatif", exposure: "private", hint: "Service applicatif, logique métier", techs: ["nestjs", "express", "fastify", "laravel", "symfony", "django", "fastapi", "rails", "spring-boot", "dotnet", "go"] },
-  api: { label: "API", group: "Applicatif", exposure: "public", hint: "Point d'entrée API exposé aux clients", techs: ["nestjs", "express", "fastapi", "laravel", "spring-boot", "dotnet", "go", "graphql"] },
-  database: { label: "Base de données", group: "Données", exposure: "private", hint: "Stockage persistant structuré", techs: ["postgresql", "mysql", "mariadb", "mongodb", "sqlserver", "sqlite"] },
-  cache: { label: "Cache", group: "Données", exposure: "private", hint: "Cache mémoire, sessions", techs: ["redis", "valkey", "memcached"] },
-  queue: { label: "File de messages", group: "Données", exposure: "private", hint: "Traitements asynchrones", techs: ["rabbitmq", "kafka", "nats", "sqs", "pg-boss"] },
-  storage: { label: "Stockage objet", group: "Données", exposure: "private", hint: "Fichiers, médias, téléversements", techs: ["s3", "minio", "r2", "gcs", "azure-blob"] },
-  cdn: { label: "CDN", group: "Réseau", exposure: "public", hint: "Distribution et cache en bordure", techs: ["cloudflare", "cloudfront", "fastly", "bunny", "akamai"] },
-  waf: { label: "Pare-feu applicatif", group: "Réseau", exposure: "public", hint: "Filtrage des requêtes malveillantes", techs: ["cloudflare", "crowdsec", "modsecurity", "aws-waf"] },
-  "load-balancer": { label: "Répartiteur de charge", group: "Réseau", exposure: "public", hint: "Reverse proxy, terminaison TLS", techs: ["nginx", "caddy", "traefik", "haproxy", "alb"] },
-  dns: { label: "DNS", group: "Réseau", exposure: "public", hint: "Résolution du nom de domaine", techs: ["cloudflare", "route53", "ovh", "gandi"] },
-  payment: { label: "Paiement", group: "Services tiers", exposure: "managed", hint: "Prestataire de paiement", techs: ["stripe", "paypal", "wave", "orange-money", "paydunya", "cinetpay", "adyen"] },
-  email: { label: "E-mail", group: "Services tiers", exposure: "managed", hint: "Envoi d'e-mails transactionnels", techs: ["resend", "brevo", "sendgrid", "mailgun", "ses", "postmark", "smtp"] },
-  idp: { label: "Identité / SSO", group: "Services tiers", exposure: "managed", hint: "Fournisseur d'identité", techs: ["keycloak", "better-auth", "auth0", "entra-id", "google", "zitadel"] },
-  ai: { label: "Service d'IA", group: "Services tiers", exposure: "managed", hint: "Modèle de langage, vision…", techs: ["claude", "mistral", "ollama", "vllm"] },
-  analytics: { label: "Mesure d'audience", group: "Services tiers", exposure: "managed", hint: "Statistiques de visite", techs: ["matomo", "plausible", "umami", "google-analytics"] },
-  external: { label: "Système externe", group: "Services tiers", exposure: "managed", hint: "API d'un partenaire, SI existant", techs: [] },
-  monitoring: { label: "Supervision", group: "Exploitation", exposure: "private", hint: "Métriques, alertes, disponibilité", techs: ["prometheus", "grafana", "uptime-kuma", "sentry", "datadog", "betterstack"] },
-  logging: { label: "Journalisation", group: "Exploitation", exposure: "private", hint: "Centralisation des journaux", techs: ["loki", "elasticsearch", "opensearch", "graylog"] },
-  backup: { label: "Sauvegarde", group: "Exploitation", exposure: "private", hint: "Sauvegardes externalisées", techs: ["restic", "borg", "pgbackrest", "velero", "barman"] },
-  secrets: { label: "Coffre à secrets", group: "Exploitation", exposure: "private", hint: "Clés, mots de passe, jetons", techs: ["vault", "openbao", "infisical", "sops", "doppler"] },
+  frontend: { label: "Front-end", group: "clients", exposure: "public", hint: "Website or web app served to the browser", techs: ["nextjs", "nuxt", "sveltekit", "astro", "react", "vue", "angular", "wordpress", "drupal"] },
+  mobile: { label: "Mobile app", group: "clients", exposure: "managed", hint: "iOS / Android application", techs: ["react-native", "flutter", "swift", "kotlin", "expo"] },
+  backend: { label: "Back-end", group: "app", exposure: "private", hint: "Application service, business logic", techs: ["nestjs", "express", "fastify", "laravel", "symfony", "django", "fastapi", "rails", "spring-boot", "dotnet", "go"] },
+  api: { label: "API", group: "app", exposure: "public", hint: "API entry point exposed to clients", techs: ["nestjs", "express", "fastapi", "laravel", "spring-boot", "dotnet", "go", "graphql"] },
+  database: { label: "Database", group: "data", exposure: "private", hint: "Structured persistent storage", techs: ["postgresql", "mysql", "mariadb", "mongodb", "sqlserver", "sqlite"] },
+  cache: { label: "Cache", group: "data", exposure: "private", hint: "In-memory cache, sessions", techs: ["redis", "valkey", "memcached"] },
+  queue: { label: "Message queue", group: "data", exposure: "private", hint: "Asynchronous processing", techs: ["rabbitmq", "kafka", "nats", "sqs", "pg-boss"] },
+  storage: { label: "Object storage", group: "data", exposure: "private", hint: "Files, media, uploads", techs: ["s3", "minio", "r2", "gcs", "azure-blob"] },
+  cdn: { label: "CDN", group: "network", exposure: "public", hint: "Edge distribution and caching", techs: ["cloudflare", "cloudfront", "fastly", "bunny", "akamai"] },
+  waf: { label: "Web application firewall", group: "network", exposure: "public", hint: "Filters malicious requests", techs: ["cloudflare", "crowdsec", "modsecurity", "aws-waf"] },
+  "load-balancer": { label: "Load balancer", group: "network", exposure: "public", hint: "Reverse proxy, TLS termination", techs: ["nginx", "caddy", "traefik", "haproxy", "alb"] },
+  dns: { label: "DNS", group: "network", exposure: "public", hint: "Domain name resolution", techs: ["cloudflare", "route53", "ovh", "gandi"] },
+  payment: { label: "Payment", group: "third-party", exposure: "managed", hint: "Payment provider", techs: ["stripe", "paypal", "wave", "orange-money", "paydunya", "cinetpay", "adyen"] },
+  email: { label: "E-mail", group: "third-party", exposure: "managed", hint: "Transactional e-mail delivery", techs: ["resend", "brevo", "sendgrid", "mailgun", "ses", "postmark", "smtp"] },
+  idp: { label: "Identity / SSO", group: "third-party", exposure: "managed", hint: "Identity provider", techs: ["keycloak", "better-auth", "auth0", "entra-id", "google", "zitadel"] },
+  ai: { label: "AI service", group: "third-party", exposure: "managed", hint: "Language model, vision…", techs: ["claude", "mistral", "ollama", "vllm"] },
+  analytics: { label: "Analytics", group: "third-party", exposure: "managed", hint: "Visit statistics", techs: ["matomo", "plausible", "umami", "google-analytics"] },
+  external: { label: "External system", group: "third-party", exposure: "managed", hint: "Partner API, existing system", techs: [] },
+  monitoring: { label: "Monitoring", group: "operations", exposure: "private", hint: "Metrics, alerts, uptime", techs: ["prometheus", "grafana", "uptime-kuma", "sentry", "datadog", "betterstack"] },
+  logging: { label: "Logging", group: "operations", exposure: "private", hint: "Centralized logs", techs: ["loki", "elasticsearch", "opensearch", "graylog"] },
+  backup: { label: "Backup", group: "operations", exposure: "private", hint: "Off-site backups", techs: ["restic", "borg", "pgbackrest", "velero", "barman"] },
+  secrets: { label: "Secrets vault", group: "operations", exposure: "private", hint: "Keys, passwords, tokens", techs: ["vault", "openbao", "infisical", "sops", "doppler"] },
 };
 
 export const ACTORS: Record<ActorKind, { label: string; hint: string }> = {
+  visitor: { label: "Visitor", hint: "Anonymous visitor" },
+  user: { label: "User", hint: "Signed-in user" },
+  admin: { label: "Administrator", hint: "Administration team" },
+  partner: { label: "Partner", hint: "Third-party organization" },
+  system: { label: "System", hint: "Another automated system" },
+};
+
+export const PROJECT_TYPE_LABELS = {
+  showcase: "Showcase website",
+  ecommerce: "E-commerce",
+  saas: "SaaS",
+  "mobile-api": "Mobile app + API",
+  api: "Public API",
+  "public-service": "Online public service",
+  "internal-tool": "Internal tool",
+  other: "Other",
+} as Record<string, string> & { showcase: string; ecommerce: string; saas: string; "mobile-api": string; api: string; "public-service": string; "internal-tool": string; other: string };
+
+export const FEATURE_LABELS = {
+  accounts: "User accounts",
+  admin: "Admin back office",
+  payment: "Online payment",
+  forms: "Forms",
+  newsletter: "Newsletter",
+  uploads: "File uploads",
+  ai: "AI features",
+  analytics: "Analytics",
+  email: "Transactional e-mails",
+} as const;
+
+export const DATA_LABELS = {
+  identity: "Identity",
+  contact: "Contact details",
+  location: "Location",
+  usage: "Usage data",
+  payment: "Payment",
+  financial: "Financial data",
+  health: "Health",
+  biometric: "Biometrics",
+  minors: "Minors",
+  religion: "Religious beliefs",
+  political: "Political opinions",
+  judicial: "Judicial data",
+  "national-id": "National ID number",
+} as const;
+
+export const COUNTRIES: Record<string, string> = {
+  SN: "Senegal",
+  CI: "Côte d'Ivoire",
+  ML: "Mali",
+  BF: "Burkina Faso",
+  BJ: "Benin",
+  TG: "Togo",
+  NE: "Niger",
+  GN: "Guinea",
+  CM: "Cameroon",
+  MA: "Morocco",
+  TN: "Tunisia",
+  FR: "France",
+  BE: "Belgium",
+  CH: "Switzerland",
+  DE: "Germany",
+  NL: "Netherlands",
+  IE: "Ireland",
+  ES: "Spain",
+  IT: "Italy",
+  PT: "Portugal",
+  LU: "Luxembourg",
+  GB: "United Kingdom",
+  US: "United States",
+  CA: "Canada",
+  ZA: "South Africa",
+  NG: "Nigeria",
+  GH: "Ghana",
+  KE: "Kenya",
+};
+
+/* ---------------------------------------------------------------- languages */
+
+export type CatalogLang = "en" | "fr";
+
+export const KIND_GROUP_LABELS: Record<CatalogLang, Record<KindGroup, string>> = {
+  en: { clients: "Clients", app: "Application", data: "Data", network: "Network", "third-party": "Third-party services", operations: "Operations" },
+  fr: { clients: "Clients", app: "Applicatif", data: "Données", network: "Réseau", "third-party": "Services tiers", operations: "Exploitation" },
+};
+
+const KINDS_FR: Record<ComponentKind, { label: string; hint: string }> = {
+  frontend: { label: "Front-end", hint: "Site ou application web servie au navigateur" },
+  mobile: { label: "App mobile", hint: "Application iOS / Android" },
+  backend: { label: "Back-end", hint: "Service applicatif, logique métier" },
+  api: { label: "API", hint: "Point d'entrée API exposé aux clients" },
+  database: { label: "Base de données", hint: "Stockage persistant structuré" },
+  cache: { label: "Cache", hint: "Cache mémoire, sessions" },
+  queue: { label: "File de messages", hint: "Traitements asynchrones" },
+  storage: { label: "Stockage objet", hint: "Fichiers, médias, téléversements" },
+  cdn: { label: "CDN", hint: "Distribution et cache en bordure" },
+  waf: { label: "Pare-feu applicatif", hint: "Filtrage des requêtes malveillantes" },
+  "load-balancer": { label: "Répartiteur de charge", hint: "Reverse proxy, terminaison TLS" },
+  dns: { label: "DNS", hint: "Résolution du nom de domaine" },
+  payment: { label: "Paiement", hint: "Prestataire de paiement" },
+  email: { label: "E-mail", hint: "Envoi d'e-mails transactionnels" },
+  idp: { label: "Identité / SSO", hint: "Fournisseur d'identité" },
+  ai: { label: "Service d'IA", hint: "Modèle de langage, vision…" },
+  analytics: { label: "Mesure d'audience", hint: "Statistiques de visite" },
+  external: { label: "Système externe", hint: "API d'un partenaire, SI existant" },
+  monitoring: { label: "Supervision", hint: "Métriques, alertes, disponibilité" },
+  logging: { label: "Journalisation", hint: "Centralisation des journaux" },
+  backup: { label: "Sauvegarde", hint: "Sauvegardes externalisées" },
+  secrets: { label: "Coffre à secrets", hint: "Clés, mots de passe, jetons" },
+};
+
+const ACTORS_FR: Record<ActorKind, { label: string; hint: string }> = {
   visitor: { label: "Visiteur", hint: "Internaute anonyme" },
   user: { label: "Utilisateur", hint: "Utilisateur connecté" },
   admin: { label: "Administrateur", hint: "Équipe d'administration" },
@@ -42,75 +156,94 @@ export const ACTORS: Record<ActorKind, { label: string; hint: string }> = {
   system: { label: "Système", hint: "Autre système automatisé" },
 };
 
-export const PROJECT_TYPE_LABELS = {
-  showcase: "Site vitrine",
-  ecommerce: "E-commerce",
-  saas: "SaaS",
-  "mobile-api": "Application mobile + API",
-  api: "API publique",
-  "public-service": "Service public en ligne",
-  "internal-tool": "Outil interne",
-  other: "Autre",
-} as const;
-
-export const FEATURE_LABELS = {
-  accounts: "Comptes utilisateurs",
-  admin: "Back-office d'administration",
-  payment: "Paiement en ligne",
-  forms: "Formulaires",
-  newsletter: "Newsletter",
-  uploads: "Téléversement de fichiers",
-  ai: "Fonctions d'IA",
-  analytics: "Mesure d'audience",
-  email: "E-mails transactionnels",
-} as const;
-
-export const DATA_LABELS = {
-  identity: "Identité",
-  contact: "Coordonnées",
-  location: "Localisation",
-  usage: "Données d'usage",
-  payment: "Paiement",
-  financial: "Données financières",
-  health: "Santé",
-  biometric: "Biométrie",
-  minors: "Mineurs",
-  religion: "Convictions religieuses",
-  political: "Opinions politiques",
-  judicial: "Données judiciaires",
-  "national-id": "Numéro d'identification national",
-} as const;
-
-export const COUNTRIES: Record<string, string> = {
-  SN: "Sénégal",
-  CI: "Côte d'Ivoire",
-  ML: "Mali",
-  BF: "Burkina Faso",
-  BJ: "Bénin",
-  TG: "Togo",
-  NE: "Niger",
-  GN: "Guinée",
-  CM: "Cameroun",
-  MA: "Maroc",
-  TN: "Tunisie",
-  FR: "France",
-  BE: "Belgique",
-  CH: "Suisse",
-  DE: "Allemagne",
-  NL: "Pays-Bas",
-  IE: "Irlande",
-  ES: "Espagne",
-  IT: "Italie",
-  PT: "Portugal",
-  LU: "Luxembourg",
-  GB: "Royaume-Uni",
-  US: "États-Unis",
-  CA: "Canada",
-  ZA: "Afrique du Sud",
-  NG: "Nigeria",
-  GH: "Ghana",
-  KE: "Kenya",
+const LABELS_FR = {
+  PROJECT_TYPE_LABELS: {
+    showcase: "Site vitrine",
+    ecommerce: "E-commerce",
+    saas: "SaaS",
+    "mobile-api": "Application mobile + API",
+    api: "API publique",
+    "public-service": "Service public en ligne",
+    "internal-tool": "Outil interne",
+    other: "Autre",
+  },
+  FEATURE_LABELS: {
+    accounts: "Comptes utilisateurs",
+    admin: "Back-office d'administration",
+    payment: "Paiement en ligne",
+    forms: "Formulaires",
+    newsletter: "Newsletter",
+    uploads: "Téléversement de fichiers",
+    ai: "Fonctions d'IA",
+    analytics: "Mesure d'audience",
+    email: "E-mails transactionnels",
+  },
+  DATA_LABELS: {
+    identity: "Identité",
+    contact: "Coordonnées",
+    location: "Localisation",
+    usage: "Données d'usage",
+    payment: "Paiement",
+    financial: "Données financières",
+    health: "Santé",
+    biometric: "Biométrie",
+    minors: "Mineurs",
+    religion: "Convictions religieuses",
+    political: "Opinions politiques",
+    judicial: "Données judiciaires",
+    "national-id": "Numéro d'identification national",
+  },
+  COUNTRIES: {
+    SN: "Sénégal",
+    CI: "Côte d'Ivoire",
+    ML: "Mali",
+    BF: "Burkina Faso",
+    BJ: "Bénin",
+    TG: "Togo",
+    NE: "Niger",
+    GN: "Guinée",
+    CM: "Cameroun",
+    MA: "Maroc",
+    TN: "Tunisie",
+    FR: "France",
+    BE: "Belgique",
+    CH: "Suisse",
+    DE: "Allemagne",
+    NL: "Pays-Bas",
+    IE: "Irlande",
+    ES: "Espagne",
+    IT: "Italie",
+    PT: "Portugal",
+    LU: "Luxembourg",
+    GB: "Royaume-Uni",
+    US: "États-Unis",
+    CA: "Canada",
+    ZA: "Afrique du Sud",
+    NG: "Nigeria",
+    GH: "Ghana",
+    KE: "Kenya",
+  } as Record<string, string>,
 };
+
+/** The catalogue in one language. English is the default; the shape is the same for every language. */
+export function catalog(lang: CatalogLang = "en") {
+  if (lang === "en") {
+    return { KINDS, ACTORS, PROJECT_TYPE_LABELS, FEATURE_LABELS, DATA_LABELS, COUNTRIES, KIND_GROUPS: KIND_GROUP_LABELS.en };
+  }
+  const kinds = Object.fromEntries(Object.entries(KINDS).map(([k, v]) => [k, { ...v, ...KINDS_FR[k as ComponentKind] }])) as Record<ComponentKind, KindInfo>;
+  const actors = Object.fromEntries(Object.entries(ACTORS).map(([k, v]) => [k, { ...v, ...ACTORS_FR[k as ActorKind] }])) as typeof ACTORS;
+  return {
+    KINDS: kinds,
+    ACTORS: actors,
+    PROJECT_TYPE_LABELS: { ...PROJECT_TYPE_LABELS, ...LABELS_FR.PROJECT_TYPE_LABELS },
+    FEATURE_LABELS: { ...FEATURE_LABELS, ...LABELS_FR.FEATURE_LABELS },
+    DATA_LABELS: { ...DATA_LABELS, ...LABELS_FR.DATA_LABELS },
+    COUNTRIES: { ...COUNTRIES, ...LABELS_FR.COUNTRIES },
+    KIND_GROUPS: KIND_GROUP_LABELS.fr,
+  };
+}
+
+export type Catalog = ReturnType<typeof catalog>;
 
 export const EU_EEA = new Set([
   "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE", "IS", "LI", "NO",

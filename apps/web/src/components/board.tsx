@@ -3,43 +3,44 @@
 import { useMemo, useState } from "react";
 import { CircleCheck, CircleDashed, RotateCcw } from "lucide-react";
 import type { RuleResult } from "@golive/engine";
+import { boardMessages } from "@/i18n/messages/board";
+import { useMessages } from "@/i18n/client";
 import { useStore, type Column, type Task } from "@/lib/store";
 import { Empty, SeverityTag, StatusIcon, Tip, cx } from "./ui";
 import type { WorkspaceProps } from "./workspace";
 
-const COLUMNS: { id: Column; label: string; hint: string }[] = [
-  { id: "todo", label: "À faire", hint: "Générées par l'audit" },
-  { id: "doing", label: "En cours", hint: "" },
-  { id: "review", label: "À vérifier", hint: "Relancez l'audit pour confirmer" },
-  { id: "done", label: "Fait", hint: "Fermées par l'audit" },
-];
-
-const MILESTONE: Record<number, string> = { 1: "Conception", 2: "Développement", 3: "Pré-prod", 4: "Go / No-Go" };
+const COLUMNS: Column[] = ["todo", "doing", "review", "done"];
 const SEV = { blocker: 0, major: 1, minor: 2, info: 3 };
 const DND = "application/x-golive-task";
 
 export function Board({ project, report, go }: WorkspaceProps) {
+  const t = useMessages(boardMessages);
   const move = useStore((s) => s.moveTask);
   const [over, setOver] = useState<Column | null>(null);
   const byRule = useMemo(() => new Map(report.results.map((r) => [r.ruleId, r])), [report]);
 
   const cols = useMemo(() => {
     const tasks = Object.values(project.tasks).filter((t) => byRule.has(t.id));
-    return COLUMNS.map((c) => ({
-      ...c,
+    return COLUMNS.map((id) => ({
+      id,
+      ...t.columns[id],
       tasks: tasks
-        .filter((t) => t.column === c.id)
+        .filter((task) => task.column === id)
         .sort((a, b) => {
           const ra = byRule.get(a.id)!;
           const rb = byRule.get(b.id)!;
           return Number(rb.blocking) - Number(ra.blocking) || SEV[ra.severity] - SEV[rb.severity];
         }),
     }));
-  }, [project.tasks, byRule]);
+  }, [project.tasks, byRule, t]);
 
   const total = cols.reduce((n, c) => n + c.tasks.length, 0);
   if (total === 0) {
-    return <Empty icon={<CircleCheck size={16} />} title="Aucune tâche">Les tâches apparaissent automatiquement pour chaque contrôle en échec ou preuve manquante.</Empty>;
+    return (
+      <Empty icon={<CircleCheck size={16} />} title={t.emptyTitle}>
+        {t.emptyBody}
+      </Empty>
+    );
   }
 
   return (
@@ -73,8 +74,8 @@ export function Board({ project, report, go }: WorkspaceProps) {
             {col.hint && <span className="text-[11px] text-fg-4">{col.hint}</span>}
           </header>
           <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
-            {col.tasks.map((t) => (
-              <Card key={t.id} task={t} r={byRule.get(t.id)!} onOpen={() => go("checks", t.id)} />
+            {col.tasks.map((task) => (
+              <Card key={task.id} task={task} r={byRule.get(task.id)!} onOpen={() => go("checks", task.id)} />
             ))}
           </div>
         </section>
@@ -84,6 +85,7 @@ export function Board({ project, report, go }: WorkspaceProps) {
 }
 
 function Card({ task, r, onOpen }: { task: Task; r: RuleResult; onOpen: () => void }) {
+  const t = useMessages(boardMessages);
   const open = r.findings.filter((f) => f.status !== "pass").length;
   return (
     <article
@@ -102,21 +104,21 @@ function Card({ task, r, onOpen }: { task: Task; r: RuleResult; onOpen: () => vo
       <p className="mt-1 line-clamp-2 pl-[21px] text-xs text-fg-3">{r.findings.find((f) => f.status !== "pass")?.message ?? r.why}</p>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-[21px]">
         <SeverityTag severity={r.severity} />
-        <span className="rounded bg-sunken px-1.5 text-[10.5px] leading-[18px] text-fg-2">{MILESTONE[r.layer]}</span>
-        {open > 1 && <span className="tnum text-[10.5px] text-fg-3">{open} constats</span>}
+        <span className="rounded bg-sunken px-1.5 text-[10.5px] leading-[18px] text-fg-2">{t.milestones[r.layer]}</span>
+        {open > 1 && <span className="tnum text-[10.5px] text-fg-3">{t.findings(open)}</span>}
         <span className="ml-auto flex items-center gap-1">
           {task.regression && (
-            <Tip label="Régression : corrigé puis réapparu">
+            <Tip label={t.regression}>
               <RotateCcw size={12} className="text-red" />
             </Tip>
           )}
           {task.unconfirmed && r.status !== "pass" && (
-            <Tip label="Déplacée à la main : non confirmé par l'audit">
+            <Tip label={t.unconfirmed}>
               <CircleDashed size={12} className="text-amber" />
             </Tip>
           )}
           {task.closedByAudit && (
-            <Tip label="Fermée automatiquement par l'audit">
+            <Tip label={t.closedByAudit}>
               <CircleCheck size={12} className="text-go" />
             </Tip>
           )}

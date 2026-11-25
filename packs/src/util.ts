@@ -1,21 +1,22 @@
-import { notRun, notScanned, type CrawlObservation, type Finding, type RepoObservation, type RuleContext, type WebObservation } from "@golive/packs-sdk";
+import { notRun, notScanned, tr, type CrawlObservation, type Finding, type RepoObservation, type RuleContext, type WebObservation } from "@golive/packs-sdk";
 
 /** Run a layer 3 check only when a successful web observation exists. */
 export function withWeb(ctx: RuleContext, fn: (web: WebObservation) => Finding | Finding[]): Finding | Finding[] {
   if (!ctx.web) return notRun();
-  if (!ctx.web.ok) return notRun("Le site n'a pas pu être audité.");
+  if (!ctx.web.ok) return notRun(tr(ctx, "The site could not be audited.", "Le site n'a pas pu être audité."));
   return fn(ctx.web);
 }
 
 /** Run a check that needs the multi-page crawl of a full audit. */
 export function withCrawl(ctx: RuleContext, fn: (crawl: CrawlObservation, web: WebObservation) => Finding | Finding[]): Finding | Finding[] {
   return withWeb(ctx, (web) => {
-    if (!web.crawl) return notRun("Audit complet non lancé : le robot n'a pas encore parcouru le site.");
-    if (!web.crawl.pages.some((p) => p.status !== null && p.status < 400)) return notRun("Le robot n'a pu charger aucune page.");
+    if (!web.crawl) return notRun(tr(ctx, "No full audit yet: the robot has not browsed the site.", "Audit complet non lancé : le robot n'a pas encore parcouru le site."));
+    if (!web.crawl.pages.some((p) => p.status !== null && p.status < 400)) return notRun(tr(ctx, "The robot could not load any page.", "Le robot n'a pu charger aucune page."));
     return fn(web.crawl, web);
   });
 }
 
+/** "3 pages", "1 page". Give the plural form when it is not word + "s". */
 export const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n > 1 ? many : word}`;
 
 export const pathOf = (url: string) => {

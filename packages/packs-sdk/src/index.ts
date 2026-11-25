@@ -6,12 +6,22 @@ export * from "./web";
 import type { RepoObservation } from "./repo";
 import type { WebObservation } from "./web";
 
+/* ------------------------------------------------------------------ language */
+
+/** Interface languages. English is the default; rules carry a French translation. */
+export type Lang = "en" | "fr";
+export const LANGS: readonly Lang[] = ["en", "fr"];
+export const isLang = (v: unknown): v is Lang => v === "en" || v === "fr";
+
+/** Picks the message for the evaluation language. Every finding message is written in both. */
+export const tr = (ctx: { lang: Lang }, en: string, fr: string) => (ctx.lang === "fr" ? fr : en);
+
 /* ------------------------------------------------------------------ types */
 
 export type Severity = "blocker" | "major" | "minor" | "info";
 /**
- * pass: OK · warn: Avertissement · fail: Échec · na: Non applicable
- * evidence: Preuve requise (cannot be verified automatically)
+ * pass: OK · warn: warning · fail: failure · na: not applicable
+ * evidence: proof required (cannot be verified automatically)
  * not-run: the layer that feeds this rule has not been executed yet
  */
 export type Status = "pass" | "warn" | "fail" | "na" | "evidence" | "not-run";
@@ -44,6 +54,17 @@ export interface RuleContext {
   repo?: RepoObservation;
   /** Layer 3 observation of the deployed target, when an audit ran. */
   web?: WebObservation;
+  /** Language of the messages. Never changes the outcome of a rule. */
+  lang: Lang;
+}
+
+/** French version of a rule's texts. English is written in the rule itself. */
+export interface RuleTranslation {
+  title?: string;
+  why?: string;
+  fix?: string;
+  /** Label of the source, when it differs in French. */
+  source?: string;
 }
 
 export interface Rule {
@@ -64,6 +85,8 @@ export interface Rule {
   check: (ctx: RuleContext) => Finding | Finding[];
   /** Legal rules always carry a "to be validated by a lawyer" notice. */
   legal?: boolean;
+  /** French texts. */
+  fr?: RuleTranslation;
 }
 
 export interface Pack {
@@ -80,6 +103,8 @@ export interface Pack {
   /** Suggest this pack when the project targets one of these countries. */
   countries?: string[];
   rules: Rule[];
+  /** French name and description. */
+  fr?: { name?: string; description?: string };
 }
 
 export function defineRule(rule: Rule): Rule {
@@ -89,7 +114,7 @@ export function defineRule(rule: Rule): Rule {
 export function definePack(pack: Pack): Pack {
   const seen = new Set<string>();
   for (const r of pack.rules) {
-    if (seen.has(r.id)) throw new Error(`[${pack.id}] règle en double : ${r.id}`);
+    if (seen.has(r.id)) throw new Error(`[${pack.id}] duplicate rule: ${r.id}`);
     seen.add(r.id);
   }
   return pack;
@@ -100,10 +125,23 @@ export function definePack(pack: Pack): Pack {
 export const pass = (message: string, extra?: Partial<Finding>): Finding => ({ status: "pass", message, ...extra });
 export const fail = (message: string, extra?: Partial<Finding>): Finding => ({ status: "fail", message, ...extra });
 export const warn = (message: string, extra?: Partial<Finding>): Finding => ({ status: "warn", message, ...extra });
-export const na = (message = "Non applicable à ce projet."): Finding => ({ status: "na", message });
+export const na = (message: string = DEFAULT_MESSAGES.na): Finding => ({ status: "na", message });
 export const evidence = (message: string, extra?: Partial<Finding>): Finding => ({ status: "evidence", message, ...extra });
-export const notRun = (message = "Aucune URL auditée pour l'instant."): Finding => ({ status: "not-run", message });
-export const notScanned = (): Finding => ({ status: "not-run", message: "Dépôt non analysé. Lancez golive check --repo . dans votre CI." });
+export const notRun = (message: string = DEFAULT_MESSAGES.notRun): Finding => ({ status: "not-run", message });
+export const notScanned = (): Finding => ({ status: "not-run", message: DEFAULT_MESSAGES.notScanned });
+
+/** Messages helpers use when a rule gives none. The engine translates them. */
+export const DEFAULT_MESSAGES = {
+  na: "Not applicable to this project.",
+  notRun: "No URL audited yet.",
+  notScanned: "Repository not scanned. Run golive check --repo . in your CI.",
+} as const;
+
+export const DEFAULT_MESSAGES_FR: Record<string, string> = {
+  [DEFAULT_MESSAGES.na]: "Non applicable à ce projet.",
+  [DEFAULT_MESSAGES.notRun]: "Aucune URL auditée pour l'instant.",
+  [DEFAULT_MESSAGES.notScanned]: "Dépôt non analysé. Lancez golive check --repo . dans votre CI.",
+};
 
 /* ---------------------------------------------------------------- graph */
 

@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Lexend } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { LANG_COOKIE, resolveLang } from "@/i18n";
 import "./globals.css";
 
 const lexend = Lexend({ subsets: ["latin"], weight: ["600"], variable: "--font-lexend", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "PcyBox GoLive", template: "%s · PcyBox GoLive" },
-  description: "Le feu vert avant toute mise en production. Dessinez votre architecture, PcyBox GoLive vérifie tout et rend un verdict Go / No-Go.",
+  description: "The green light before any production launch. Draw your architecture, PcyBox GoLive checks everything and returns a Go / No-Go verdict.",
   icons: { icon: "/favicon-32.png", apple: "/icon-192.png" },
 };
 
@@ -23,14 +25,16 @@ export const viewport: Viewport = {
 // Applies the saved theme before first paint to avoid a flash.
 const themeScript = `(function(){try{var t=localStorage.getItem("golive.theme")||"system";var d=t==="dark"||(t==="system"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}})()`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // English by default; the switch in the interface stores the choice in a cookie.
+  const lang = resolveLang((await cookies()).get(LANG_COOKIE)?.value);
   return (
-    <html lang="fr" className={`${GeistSans.variable} ${GeistMono.variable} ${lexend.variable}`} suppressHydrationWarning>
+    <html lang={lang} className={`${GeistSans.variable} ${GeistMono.variable} ${lexend.variable}`} suppressHydrationWarning>
       <head>
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <Providers lang={lang}>{children}</Providers>
       </body>
     </html>
   );

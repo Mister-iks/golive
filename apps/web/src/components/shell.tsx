@@ -7,6 +7,7 @@ import { BookOpenText, FolderKanban, Laptop, Moon, Sun, Users } from "lucide-rea
 import { ENGINE_VERSION } from "@golive/engine";
 import { Wordmark } from "./brand";
 import { OrgSwitcher, Toast, UserMenu } from "./account";
+import { LangSwitch } from "./lang-switch";
 import { useTheme, type ThemePref } from "./providers";
 import { useMe } from "@/lib/use-report";
 import { cx, Tip } from "./ui";
@@ -23,10 +24,11 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden">
       <aside className="no-print flex w-[216px] shrink-0 flex-col border-r border-line bg-surface-2 max-md:hidden">
-        <div className="flex h-12 items-center px-4">
-          <Link href="/" aria-label="PcyBox GoLive, accueil">
+        <div className="flex h-12 items-center justify-between gap-2 pl-4 pr-3">
+          <Link href="/" aria-label="PcyBox GoLive">
             <Wordmark />
           </Link>
+          <LangSwitch />
         </div>
         <div className="px-3 pb-2 pt-1">
           <OrgSwitcher />
