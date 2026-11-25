@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # Keeps the actions used by CI and release up to date.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  # Security updates for npm dependencies are opened as soon as an alert appears;
+  # version updates are grouped weekly to keep the noise low.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dependencies:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
