@@ -36,7 +36,8 @@ beforeAll(async () => {
       break;
     } catch {}
   }
-});
+  // Looking for a browser to launch can take a while on CI runners.
+}, 60_000);
 
 afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
