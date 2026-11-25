@@ -11,6 +11,10 @@ export function langOf(req: Pick<NextRequest, "cookies"> | Request | undefined |
   if (!req) return "en";
   if ("cookies" in req && typeof (req as NextRequest).cookies?.get === "function") return resolveLang((req as NextRequest).cookies.get(LANG_COOKIE)?.value);
   const raw = (req as Request).headers?.get("cookie") ?? "";
-  const m = new RegExp(`(?:^|;\s*)${LANG_COOKIE.replace(".", "\.")}=(\w+)`).exec(raw);
-  return resolveLang(m?.[1]);
+  // Plain parsing: no regular expression built from the cookie name.
+  const pair = raw
+    .split(";")
+    .map((p) => p.trim())
+    .find((p) => p.startsWith(`${LANG_COOKIE}=`));
+  return resolveLang(pair?.slice(LANG_COOKIE.length + 1));
 }

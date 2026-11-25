@@ -209,6 +209,8 @@ function readTls(url: URL, opts: GuardOptions, timeoutMs: number): Promise<WebOb
       host: url.hostname,
       port: Number(url.port || 443),
       servername: url.hostname,
+      // On purpose: this socket only reads the certificate to report on it, including when it is
+      // invalid (socket.authorized and authorizationError are reported). No data is exchanged.
       rejectUnauthorized: false,
       lookup: guardedLookup(opts) as never,
       timeout: timeoutMs,

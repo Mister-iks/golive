@@ -42,8 +42,10 @@ export function checkDockerfile(file: string, text: string): ContainerFinding[] 
     if (!buf) start = i + 1;
     buf += `${line.replace(/\\$/, "")} `;
     if (!line.endsWith("\\")) {
-      const m = /^(\w+)\s+(.*)$/.exec(buf.trim());
-      if (m) instructions.push({ line: start, cmd: m[1]!.toUpperCase(), args: m[2]! });
+      // Split on the first whitespace without a backtracking regular expression (ReDoS-safe).
+      const stmt = buf.trim();
+      const cut = stmt.search(/\s/);
+      if (cut > 0 && /^\w+$/.test(stmt.slice(0, cut))) instructions.push({ line: start, cmd: stmt.slice(0, cut).toUpperCase(), args: stmt.slice(cut).trim() });
       buf = "";
     }
   });
