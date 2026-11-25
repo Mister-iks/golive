@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Lexend } from "next/font/google";
+import { InlineScript } from "@/components/inline-script";
 import { Providers } from "@/components/providers";
 import { LANG_COOKIE, resolveLang } from "@/i18n";
 import "./globals.css";
@@ -31,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} className={`${GeistSans.variable} ${GeistMono.variable} ${lexend.variable}`} suppressHydrationWarning>
       <head>
-        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <InlineScript html={themeScript} />
       </head>
       <body suppressHydrationWarning>
         <Providers lang={lang}>{children}</Providers>
