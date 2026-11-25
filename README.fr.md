@@ -18,6 +18,11 @@ Chaque jour, des sites, applications et API partent en production sans pages lé
 
 PcyBox GoLive les transforme en **règles versionnées et déterministes**, confrontées à ce que vous **déclarez** (votre architecture), ce que vous **codez** et ce qui est **en ligne**. Un seul verdict : **Go**, **Go conditionnel** ou **No-Go**.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/studio-dark.png">
+  <img src="docs/assets/screenshots/studio.png" alt="Le Studio : une architecture e-commerce dessinée, avec son verdict No-Go en direct, les scores par catégorie et la liste des bloquants.">
+</picture>
+
 ## L'édition Community
 
 - **Studio** : dessinez votre architecture (composants, technologies, flux, pays d'hébergement). Les problèmes s'affichent sur le schéma pendant que vous dessinez.

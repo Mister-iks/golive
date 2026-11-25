@@ -21,7 +21,7 @@ export const PRODUCT = "PcyBox GoLive";
 
 export function Wordmark({ className, size = "md" }: { className?: string; size?: "md" | "lg" }) {
   return (
-    <span className={cx("inline-flex items-center gap-2 text-fg", className)}>
+    <span className={cx("inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-fg", className)}>
       <Mark size={size === "lg" ? 22 : 20} />
       <span className={cx("font-brand font-semibold tracking-[-0.01em]", size === "lg" ? "text-[16px]" : "text-[15px]")}>
         <span className="text-fg-2">PcyBox</span> GoLive

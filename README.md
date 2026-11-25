@@ -23,6 +23,31 @@ Websites, apps and APIs go live every day without legal pages, basic security, b
 
 PcyBox GoLive turns them into **versioned, deterministic rules** that run against what you **declare** (your architecture), what you **code** and what is **online**, and returns one verdict: **Go**, **Conditional Go** or **No-Go**.
 
+```bash
+npx @pcybox/golive check --repo .
+```
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/studio-dark.png">
+  <img src="docs/assets/screenshots/studio.png" alt="The Studio: an e-commerce architecture drawn on a canvas, with its live No-Go verdict, scores per category and the list of blockers.">
+</picture>
+
+<table>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/assets/screenshots/checks-dark.png">
+        <img src="docs/assets/screenshots/checks.png" alt="Checks after a full audit of the live site: 20 pages browsed, blockers, proofs required and failures, each with its rule id and severity.">
+      </picture>
+      <p align="center"><sub>Full audit of the live site, every finding sourced</sub></p>
+    </td>
+    <td width="50%">
+      <img src="docs/assets/screenshots/report.png" alt="Printable Go / No-Go report with the verdict, scores per category, scope and standards applied.">
+      <p align="center"><sub>Go / No-Go report, printable and exportable as JSON</sub></p>
+    </td>
+  </tr>
+</table>
+
 ## What you get in Community
 
 | | |
