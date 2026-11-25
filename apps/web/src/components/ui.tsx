@@ -33,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         variant === "primary" && "bg-accent text-accent-fg hover:opacity-90",
         variant === "secondary" && "border border-line-strong bg-surface text-fg shadow-[0_1px_0_rgb(0_0_0/0.03)] hover:bg-surface-2",
         variant === "ghost" && "text-fg-2 hover:bg-sunken hover:text-fg",
-        variant === "danger" && "border border-red-line bg-red-soft text-red hover:brightness-95",
+        variant === "danger" && "border border-red-line bg-red-soft text-red-ink hover:brightness-95",
         !children && (size === "sm" ? "w-7 px-0" : "w-8 px-0"),
         className,
       )}
@@ -102,8 +102,8 @@ export function SeverityTag({ severity, className }: { severity: Severity; class
     <span
       className={cx(
         "inline-flex h-[18px] items-center rounded px-1.5 font-mono text-[10px] font-medium uppercase tracking-wide",
-        severity === "blocker" && "bg-red-soft text-red",
-        severity === "major" && "bg-amber-soft text-amber",
+        severity === "blocker" && "bg-red-soft text-red-ink",
+        severity === "major" && "bg-amber-soft text-amber-ink",
         severity === "minor" && "bg-sunken text-fg-2",
         severity === "info" && "bg-sunken text-fg-3",
         className,
@@ -171,9 +171,9 @@ export function VerdictPill({ decision, size = "md", className }: { decision: De
       className={cx(
         "inline-flex items-center gap-1.5 rounded-full border font-semibold",
         size === "sm" ? "h-5 px-2 text-[11px]" : "h-6 px-2.5 text-xs",
-        decision === "go" && "border-go-line bg-go-soft text-go",
-        decision === "conditional" && "border-amber-line bg-amber-soft text-amber",
-        decision === "no-go" && "border-red-line bg-red-soft text-red",
+        decision === "go" && "border-go-line bg-go-soft text-go-ink",
+        decision === "conditional" && "border-amber-line bg-amber-soft text-amber-ink",
+        decision === "no-go" && "border-red-line bg-red-soft text-red-ink",
         className,
       )}
     >

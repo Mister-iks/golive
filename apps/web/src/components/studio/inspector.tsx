@@ -92,7 +92,7 @@ export function Inspector({
           <div className="flex flex-col gap-3.5 p-4">
             <Field
               label={t.protocol}
-              hint={ENCRYPTED_PROTOCOLS.has(l.protocol) ? t.encrypted : l.protocol === "internal" ? t.internalCall : <span className="text-red">{t.plaintext}</span>}
+              hint={ENCRYPTED_PROTOCOLS.has(l.protocol) ? t.encrypted : l.protocol === "internal" ? t.internalCall : <span className="text-red-ink">{t.plaintext}</span>}
             >
               <Select value={l.protocol} onChange={(e) => patch({ protocol: e.target.value as Protocol })} className="font-mono text-xs">
                 <optgroup label={t.encryptedGroup}>
@@ -137,7 +137,7 @@ export function Inspector({
             <kbd className="font-mono">{t.deleteKey}</kbd>
             {t.toRemove}
           </span>
-          <Button variant="ghost" size="sm" icon={<Trash2 size={13} />} onClick={onDelete} className="text-red hover:text-red">
+          <Button variant="ghost" size="sm" icon={<Trash2 size={13} />} onClick={onDelete} className="text-red-ink hover:text-red-ink">
             {t.delete}
           </Button>
         </div>
@@ -193,7 +193,7 @@ function ComponentPanel({ c, spec, set, issues, onRenamed }: { c: Component; spe
           <Field label={t.name}>
             <Input value={c.name ?? ""} placeholder={c.id} onChange={(e) => patch({ name: e.target.value })} />
           </Field>
-          <Field label={t.identifier} hint={idError ? <span className="text-red">{idError}</span> : undefined}>
+          <Field label={t.identifier} hint={idError ? <span className="text-red-ink">{idError}</span> : undefined}>
             <Input mono value={idDraft} onChange={(e) => setIdDraft(e.target.value)} onBlur={commitId} onKeyDown={(e) => e.key === "Enter" && commitId()} />
           </Field>
         </div>

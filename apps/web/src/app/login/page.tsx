@@ -91,7 +91,7 @@ function Login() {
           <label className="flex items-center gap-2 text-[13px] text-fg-2">
             <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> {s2.trust}
           </label>
-          {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
+          {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red-ink">{error}</p>}
           <Button type="submit" variant="primary" size="lg" disabled={busy || !code.trim()}>
             {s2.verify}
           </Button>
@@ -149,8 +149,8 @@ function Login() {
         <Field label={m.password}>
           <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
-        {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
-        {info && <p className="rounded-md border border-go-line bg-go-soft px-3 py-2 text-[13px] text-go">{info}</p>}
+        {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red-ink">{error}</p>}
+        {info && <p className="rounded-md border border-go-line bg-go-soft px-3 py-2 text-[13px] text-go-ink">{info}</p>}
         <Button type="submit" variant="primary" size="lg" disabled={busy}>
           {t.submit}
         </Button>

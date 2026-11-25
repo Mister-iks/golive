@@ -10,7 +10,7 @@ export function MenuItem({ children, icon, onSelect, danger }: { children: React
       onSelect={onSelect}
       className={cx(
         "flex h-8 cursor-default items-center gap-2 rounded-md px-2 text-[13px] outline-none data-[highlighted]:bg-sunken",
-        danger ? "text-red" : "text-fg",
+        danger ? "text-red-ink" : "text-fg",
       )}
     >
       <span className={danger ? "" : "text-fg-3"}>{icon}</span>

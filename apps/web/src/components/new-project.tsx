@@ -99,7 +99,7 @@ export function ImportButton() {
         {t.importYaml}
       </Button>
       <Dialog open={!!error} onOpenChange={() => setError(undefined)} title={t.invalidFile} description={t.invalidFileDesc}>
-        <pre className="m-5 whitespace-pre-wrap rounded-md border border-red-line bg-red-soft p-3 font-mono text-xs text-red">{error}</pre>
+        <pre className="m-5 whitespace-pre-wrap rounded-md border border-red-line bg-red-soft p-3 font-mono text-xs text-red-ink">{error}</pre>
       </Dialog>
     </>
   );

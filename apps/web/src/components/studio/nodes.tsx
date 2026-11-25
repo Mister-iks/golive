@@ -161,7 +161,7 @@ export const LinkEdgeView = memo(function LinkEdgeView(props: EdgeProps<LinkEdge
         <div
           className={cx(
             "nodrag nopan pointer-events-auto absolute flex items-center gap-1 rounded border px-1 font-mono text-[9.5px] leading-[15px]",
-            tone === "red" ? "border-red-line bg-red-soft text-red" : selected ? "border-fg bg-surface text-fg" : "border-line bg-bg text-fg-3",
+            tone === "red" ? "border-red-line bg-red-soft text-red-ink" : selected ? "border-fg bg-surface text-fg" : "border-line bg-bg text-fg-3",
           )}
           style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
         >

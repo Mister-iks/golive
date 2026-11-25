@@ -244,7 +244,7 @@ function Chips<T extends string>({
               "inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-[12.5px] transition-colors",
               on
                 ? tone === "red"
-                  ? "border-red-line bg-red-soft text-red"
+                  ? "border-red-line bg-red-soft text-red-ink"
                   : "border-fg bg-fg text-bg"
                 : "border-line-strong bg-surface text-fg-2 hover:border-fg-4 hover:text-fg",
             )}

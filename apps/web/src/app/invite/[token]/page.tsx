@@ -99,7 +99,7 @@ export default function InvitePage() {
   return (
     <AuthFrame title={t.join} subtitle={subtitle}>
       <div className="flex flex-col gap-3">
-        {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
+        {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red-ink">{error}</p>}
         {!user ? (
           <>
             <Link href={`/signup?${new URLSearchParams({ next: here, email: preview.email })}`}>

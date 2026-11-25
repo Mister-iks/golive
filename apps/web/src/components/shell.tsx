@@ -71,7 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
       <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">
         {me?.mfaRequired && path !== "/account" && (
-          <div className="no-print flex shrink-0 items-center justify-between gap-4 border-b border-amber-line bg-amber-soft px-5 py-2 text-[13px] text-amber">
+          <div className="no-print flex shrink-0 items-center justify-between gap-4 border-b border-amber-line bg-amber-soft px-5 py-2 text-[13px] text-amber-ink">
             <span>{t.mfaBanner}</span>
             <Link href="/account" className="shrink-0 font-medium underline underline-offset-2">
               {t.mfaEnable}

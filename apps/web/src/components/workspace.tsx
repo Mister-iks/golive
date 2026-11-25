@@ -162,7 +162,7 @@ export function Workspace({ id }: { id: string }) {
 
 function Count({ children, tone }: { children: ReactNode; tone?: "red" }) {
   return (
-    <span className={cx("tnum rounded-full px-1.5 text-[10.5px] font-medium leading-4", tone === "red" ? "bg-red-soft text-red" : "bg-sunken text-fg-2")}>
+    <span className={cx("tnum rounded-full px-1.5 text-[10.5px] font-medium leading-4", tone === "red" ? "bg-red-soft text-red-ink" : "bg-sunken text-fg-2")}>
       {children}
     </span>
   );

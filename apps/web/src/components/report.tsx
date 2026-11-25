@@ -56,7 +56,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
             <p
               className={cx(
                 "text-[40px] font-semibold leading-none tracking-[-0.03em]",
-                d === "go" ? "text-go" : d === "conditional" ? "text-amber" : "text-red",
+                d === "go" ? "text-go-ink" : d === "conditional" ? "text-amber-ink" : "text-red-ink",
               )}
             >
               {L.decision[d].toUpperCase()}
@@ -80,7 +80,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
             {Object.entries(report.score.byCategory).map(([k, v]) => (
               <div key={k} className="bg-surface px-3 py-2.5">
                 <p className="truncate text-[10.5px] text-fg-3">{CATEGORY_LABELS[k as keyof typeof CATEGORY_LABELS]}</p>
-                <p className={cx("tnum text-[18px] font-semibold", v! >= 80 ? "text-go" : v! >= 50 ? "text-amber" : "text-red")}>{v}</p>
+                <p className={cx("tnum text-[18px] font-semibold", v! >= 80 ? "text-go-ink" : v! >= 50 ? "text-amber-ink" : "text-red-ink")}>{v}</p>
               </div>
             ))}
           </div>
@@ -146,7 +146,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
                     <td className="py-2 pr-4">
                       <p className="font-medium">
                         {r.title}
-                        {r.waiver && <span className="ml-1.5 text-xs font-normal text-amber">{t.waiverTag}</span>}
+                        {r.waiver && <span className="ml-1.5 text-xs font-normal text-amber-ink">{t.waiverTag}</span>}
                       </p>
                       <p className="text-fg-2">{r.findings.filter((f) => f.status !== "pass").map((f) => f.message).join(" ")}</p>
                       <p className="mt-0.5 font-mono text-[10.5px] text-fg-3">

@@ -243,7 +243,7 @@ function StudioInner({ project, report, go }: WorkspaceProps) {
               {blockersOnCanvas > 0 && (
                 <>
                   <span className="text-fg-4">·</span>
-                  <span className="font-medium text-red">{t.blockersOnCanvas(blockersOnCanvas)}</span>
+                  <span className="font-medium text-red-ink">{t.blockersOnCanvas(blockersOnCanvas)}</span>
                 </>
               )}
             </div>

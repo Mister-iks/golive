@@ -79,7 +79,7 @@ export function YamlEditor({ project }: WorkspaceProps) {
         <div className="flex items-center gap-2 text-xs">
           <StatusIcon status={issues.length ? "fail" : "pass"} size={13} />
           {issues.length ? (
-            <span className="text-red">
+            <span className="text-red-ink">
               {t.yamlErrors(issues.length)}
             </span>
           ) : (
@@ -103,7 +103,7 @@ export function YamlEditor({ project }: WorkspaceProps) {
             editing.current = false;
             if (issues.length === 0) setText(canonical);
           }}
-          extensions={[yaml(), lint, lintGutter(), theme, EditorView.lineWrapping]}
+          extensions={[yaml(), lint, lintGutter(), theme, EditorView.lineWrapping, EditorView.contentAttributes.of({ "aria-label": t.editorLabel })]}
           theme={dark ? "dark" : "light"}
           height="100%"
           basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: false }}

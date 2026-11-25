@@ -67,7 +67,7 @@ function TwoFactor() {
       title={t.title}
       aside={
         enabled ? (
-          <span className="flex items-center gap-1 rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go">
+          <span className="flex items-center gap-1 rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go-ink">
             <ShieldCheck size={12} /> {t.on}
           </span>
         ) : (
@@ -77,7 +77,7 @@ function TwoFactor() {
     >
       <div className="flex flex-col gap-3 p-4">
         {me?.mfaRequired && (
-          <p className="flex items-start gap-2 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber">
+          <p className="flex items-start gap-2 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber-ink">
             <ShieldAlert size={15} className="mt-0.5 shrink-0" />
             {t.required}
           </p>
@@ -176,7 +176,7 @@ function PasswordDialog({ step, onCancel, onConfirmed }: { step: Step; onCancel:
         }}
       >
         <Input type="password" autoComplete="current-password" autoFocus required value={password} onChange={(e) => setPassword(e.target.value)} aria-label={t.password} />
-        {error && <p className="text-[13px] text-red">{error}</p>}
+        {error && <p className="text-[13px] text-red-ink">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={onCancel}>
             {t.cancel}
@@ -247,7 +247,7 @@ function ScanDialog({ uri, codes, onCancel, onDone }: { uri: string; codes: stri
               {t.activate}
             </Button>
           </div>
-          {error && <p className="mt-2 text-[13px] text-red">{error}</p>}
+          {error && <p className="mt-2 text-[13px] text-red-ink">{error}</p>}
         </Stepper>
       </form>
     </Dialog>

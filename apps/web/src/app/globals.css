@@ -16,8 +16,8 @@
   --line-strong: #d6d6db;
   --fg: #0e0f11;
   --fg-2: #4f525a;
-  --fg-3: #85878e;
-  --fg-4: #b0b2b8;
+  --fg-3: #5e6169;
+  --fg-4: #696c74;
   --accent: #0e0f11;
   --accent-fg: #ffffff;
   --focus: #0e9f62;
@@ -26,6 +26,10 @@
   --go-soft: #e7f6ef;
   --go-line: #b5e3cd;
   --red: #d93036;
+  /* Text versions of the status colors: at least 4.5:1 on their soft backgrounds (WCAG 2.2 AA). */
+  --go-ink: #0a7f4e;
+  --red-ink: #b8262c;
+  --amber-ink: #9a5a00;
   --red-soft: #fdeced;
   --red-line: #f5c2c4;
   --amber: #b86e00;
@@ -49,8 +53,8 @@
   --line-strong: #2e3036;
   --fg: #ededef;
   --fg-2: #a3a5ad;
-  --fg-3: #6f727a;
-  --fg-4: #4a4d54;
+  --fg-3: #8b8e96;
+  --fg-4: #7f828a;
   --accent: #ededef;
   --accent-fg: #0e0f11;
   --focus: #16c784;
@@ -59,6 +63,9 @@
   --go-soft: #0f2a1f;
   --go-line: #17583c;
   --red: #ff5a5f;
+  --go-ink: #16c784;
+  --red-ink: #ff5a5f;
+  --amber-ink: #f5b54a;
   --red-soft: #2d1416;
   --red-line: #5c2427;
   --amber: #f5b54a;
@@ -87,6 +94,9 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-go: var(--go);
+  --color-go-ink: var(--go-ink);
+  --color-red-ink: var(--red-ink);
+  --color-amber-ink: var(--amber-ink);
   --color-go-soft: var(--go-soft);
   --color-go-line: var(--go-line);
   --color-red: var(--red);

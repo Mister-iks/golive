@@ -132,8 +132,8 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[13px] font-medium">
             <span className="truncate">{r.title}</span>
-            {r.waiver && <span className="shrink-0 rounded border border-amber-line px-1 font-mono text-[9.5px] uppercase text-amber">{t.waiverTag}</span>}
-            {r.attested && <span className="shrink-0 rounded border border-go-line px-1 font-mono text-[9.5px] uppercase text-go">{t.attestedTag}</span>}
+            {r.waiver && <span className="shrink-0 rounded border border-amber-line px-1 font-mono text-[9.5px] uppercase text-amber-ink">{t.waiverTag}</span>}
+            {r.attested && <span className="shrink-0 rounded border border-go-line px-1 font-mono text-[9.5px] uppercase text-go-ink">{t.attestedTag}</span>}
           </p>
           <p className="truncate text-xs text-fg-3">{visible[0]?.message ?? r.why}</p>
         </div>
@@ -321,7 +321,7 @@ function WaiveDialog({ open, onClose, r, onSave }: { open: boolean; onClose: () 
           onSave({ rule: r.ruleId, owner: owner.trim(), expires, reason: reason.trim(), plan: plan.trim() || undefined });
         }}
       >
-        <p className="rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber">
+        <p className="rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber-ink">
           {t.waiveNotice}
         </p>
         <div className="grid grid-cols-[1fr_150px] gap-3">

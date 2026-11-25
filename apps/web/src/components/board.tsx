@@ -73,7 +73,8 @@ export function Board({ project, report, go }: WorkspaceProps) {
             </div>
             {col.hint && <span className="text-[11px] text-fg-4">{col.hint}</span>}
           </header>
-          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+          {/* Focusable so keyboard users can scroll a long column. */}
+          <div tabIndex={0} role="region" aria-label={col.label} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 outline-none focus-visible:ring-2 focus-visible:ring-fg-3">
             {col.tasks.map((task) => (
               <Card key={task.id} task={task} r={byRule.get(task.id)!} onOpen={() => go("checks", task.id)} />
             ))}
@@ -109,17 +110,17 @@ function Card({ task, r, onOpen }: { task: Task; r: RuleResult; onOpen: () => vo
         <span className="ml-auto flex items-center gap-1">
           {task.regression && (
             <Tip label={t.regression}>
-              <RotateCcw size={12} className="text-red" />
+              <RotateCcw size={12} className="text-red-ink" />
             </Tip>
           )}
           {task.unconfirmed && r.status !== "pass" && (
             <Tip label={t.unconfirmed}>
-              <CircleDashed size={12} className="text-amber" />
+              <CircleDashed size={12} className="text-amber-ink" />
             </Tip>
           )}
           {task.closedByAudit && (
             <Tip label={t.closedByAudit}>
-              <CircleCheck size={12} className="text-go" />
+              <CircleCheck size={12} className="text-go-ink" />
             </Tip>
           )}
         </span>

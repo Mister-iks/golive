@@ -100,9 +100,9 @@ function Summary({ rows }: { rows: ProjectSummary[] }) {
   const audited = rows.filter((x) => x.summary.audited).length;
   const stats = [
     { label: t.projects, value: rows.length },
-    { label: t.ready, value: go, tone: go ? "text-go" : undefined },
-    { label: t.conditional, value: cond, tone: cond ? "text-amber" : undefined },
-    { label: t.blockers, value: blockers, tone: blockers ? "text-red" : undefined },
+    { label: t.ready, value: go, tone: go ? "text-go-ink" : undefined },
+    { label: t.conditional, value: cond, tone: cond ? "text-amber-ink" : undefined },
+    { label: t.blockers, value: blockers, tone: blockers ? "text-red-ink" : undefined },
     { label: t.audited, value: audited },
   ];
   return (
@@ -142,7 +142,7 @@ function Row({ p }: { p: ProjectSummary }) {
       <td className="px-3 py-3">
         <VerdictPill decision={r.decision} size="sm" />
       </td>
-      <td className={`tnum px-3 py-3 text-right ${r.blocking ? "font-medium text-red" : "text-fg-3"}`}>{r.blocking}</td>
+      <td className={`tnum px-3 py-3 text-right ${r.blocking ? "font-medium text-red-ink" : "text-fg-3"}`}>{r.blocking}</td>
       <td className="px-3 py-3 text-xs max-md:hidden">{r.audited ? <span className="text-fg-2">{t.audited}</span> : <span className="text-fg-4">{t.notAudited}</span>}</td>
       <td className="px-3 py-1.5">
         <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ function Onboarding({ onPick }: { onPick: (id: string) => void }) {
   const t = useMessages(homeMessages).hero;
   return (
     <div className="mx-auto max-w-[1040px] px-6 pb-16 pt-14">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go">PcyBox GoLive Community</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go-ink">PcyBox GoLive Community</p>
       <h2 className="mt-3 max-w-2xl text-[32px] font-semibold leading-[1.1] tracking-[-0.03em]">
         {t.line1}
         <br />

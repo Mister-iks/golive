@@ -72,7 +72,7 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
               <li
                 className={cx(
                   "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs",
-                  l.state === "on" && "border-go-line bg-go-soft text-go",
+                  l.state === "on" && "border-go-line bg-go-soft text-go-ink",
                   l.state === "off" && "border-line-strong text-fg-2",
                   (l.state === "cli" || l.state === "premium") && "border-dashed border-line text-fg-4",
                 )}
@@ -125,7 +125,7 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
       {running ? (
         <RunningAudit audit={running} />
       ) : error ? (
-        <div className="flex items-center justify-between gap-4 border-t border-red-line bg-red-soft px-5 py-2 text-xs text-red">
+        <div className="flex items-center justify-between gap-4 border-t border-red-line bg-red-soft px-5 py-2 text-xs text-red-ink">
           <span className="flex items-center gap-2">
             <ShieldAlert size={13} />
             {error.text}
@@ -210,7 +210,7 @@ function AuditHistory({ audits }: { audits: Audit[] }) {
       <ul className="flex flex-col gap-1.5">
         {done.slice(0, 10).map((a) => (
           <li key={a.id} className="flex items-center gap-2 text-xs">
-            <span className={cx("w-[86px] shrink-0 font-medium", a.status === "failed" ? "text-red" : a.verdict === "go" ? "text-go" : a.verdict === "conditional" ? "text-amber" : "text-red")}>
+            <span className={cx("w-[86px] shrink-0 font-medium", a.status === "failed" ? "text-red-ink" : a.verdict === "go" ? "text-go-ink" : a.verdict === "conditional" ? "text-amber-ink" : "text-red-ink")}>
               {a.status === "failed" ? t.failed : `${decision[a.verdict ?? ""] ?? a.verdict} · ${a.score}`}
             </span>
             <span className="w-[54px] shrink-0 text-fg-3">{a.kind === "full" ? t.kindFull : t.kindQuick}</span>

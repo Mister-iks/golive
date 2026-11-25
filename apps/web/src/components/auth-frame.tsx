@@ -27,17 +27,17 @@ export function AuthFrame({ title, subtitle, children, footer }: { title: string
       <aside className="relative hidden overflow-hidden border-l border-line bg-surface-2 lg:block" aria-hidden>
         <div className="absolute inset-0 bg-[radial-gradient(var(--canvas-dot)_1px,transparent_1px)] [background-size:14px_14px] opacity-70" />
         <div className="relative flex h-full flex-col justify-center px-14">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go">{t.kicker}</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-go-ink">{t.kicker}</p>
           <p className="mt-3 max-w-md text-[26px] font-semibold leading-[1.15] tracking-[-0.025em]">{t.headline}</p>
           <div className="mt-8 max-w-md overflow-hidden rounded-lg border border-line bg-surface shadow-[0_1px_0_var(--line),0_18px_40px_-24px_rgb(0_0_0/0.35)]">
             <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
               <span className="font-mono text-[11px] text-fg-3">golive check --repo . --url https://…</span>
-              <span className="rounded-full bg-red-soft px-2 py-0.5 text-[11px] font-medium text-red">No-Go</span>
+              <span className="rounded-full bg-red-soft px-2 py-0.5 text-[11px] font-medium text-red-ink">No-Go</span>
             </div>
             <ul className="divide-y divide-line">
               {t.sample.map(([tone, text]) => (
                 <li key={text} className="flex items-center gap-3 px-4 py-2 text-[12.5px]">
-                  <span className={tone === "ok" ? "text-go" : tone === "ko" ? "text-red" : "text-amber"}>{tone === "ok" ? "✓" : tone === "ko" ? "✕" : "◐"}</span>
+                  <span className={tone === "ok" ? "text-go-ink" : tone === "ko" ? "text-red-ink" : "text-amber-ink"}>{tone === "ok" ? "✓" : tone === "ko" ? "✕" : "◐"}</span>
                   <span className="text-fg-2">{text}</span>
                 </li>
               ))}

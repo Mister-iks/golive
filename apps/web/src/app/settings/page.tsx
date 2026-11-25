@@ -53,7 +53,7 @@ function Settings() {
           </button>
         ))}
       </nav>
-      <div className="flex-1 overflow-auto">
+      <div tabIndex={0} className="flex-1 overflow-auto outline-none">
         <div className="mx-auto max-w-[920px] px-6 py-6">
           {tab === "members" && <Members orgId={org.id} admin={admin} />}
           {tab === "domains" && <Domains orgId={org.id} initialHost={params.get("host") ?? ""} />}
@@ -125,7 +125,7 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
               </div>
               {(m.role === "owner" || m.role === "admin") && !m.twoFactor && (
                 <Tip label={t.no2faTip}>
-                  <span className="rounded-full border border-amber-line bg-amber-soft px-2 py-0.5 text-[10.5px] text-amber">{t.no2fa}</span>
+                  <span className="rounded-full border border-amber-line bg-amber-soft px-2 py-0.5 text-[10.5px] text-amber-ink">{t.no2fa}</span>
                 </Tip>
               )}
               <div className="w-[160px]">
@@ -171,7 +171,7 @@ function Members({ orgId, admin }: { orgId: string; admin: boolean }) {
                 <div className="min-w-0 flex-1 leading-tight">
                   <p className="truncate font-mono text-[12.5px]">{i.email}</p>
                   <p className="text-xs text-fg-3">
-                    {roles[i.orgRole]} · {i.expired ? <span className="text-red">{t.expired}</span> : t.expires(ago(i.expiresAt, lang))}
+                    {roles[i.orgRole]} · {i.expired ? <span className="text-red-ink">{t.expired}</span> : t.expires(ago(i.expiresAt, lang))}
                   </p>
                 </div>
                 <Button
@@ -340,7 +340,7 @@ function Domains({ orgId, initialHost }: { orgId: string; initialHost: string })
   return (
     <>
       {me && !me.settings.domainVerification && (
-        <p className="mb-4 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber">
+        <p className="mb-4 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber-ink">
           {t.disabled}
         </p>
       )}
@@ -377,7 +377,7 @@ function Domains({ orgId, initialHost }: { orgId: string; initialHost: string })
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[13px] font-medium">{d.hostname}</span>
                   {d.verifiedAt ? (
-                    <span className="rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go">{t.verifiedBy(d.method === "dns")}</span>
+                    <span className="rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go-ink">{t.verifiedBy(d.method === "dns")}</span>
                   ) : (
                     <span className="rounded-full border border-line-strong px-2 py-0.5 text-[11px] text-fg-3">{t.pending}</span>
                   )}
@@ -414,7 +414,7 @@ function Domains({ orgId, initialHost }: { orgId: string; initialHost: string })
                     />
                   </div>
                 )}
-                {result[d.id] && !d.verifiedAt && <p className="mt-2 text-xs text-red">{result[d.id]}</p>}
+                {result[d.id] && !d.verifiedAt && <p className="mt-2 text-xs text-red-ink">{result[d.id]}</p>}
               </li>
             ))}
           </ul>
