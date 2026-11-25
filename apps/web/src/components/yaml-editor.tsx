@@ -7,6 +7,8 @@ import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
 import { EditorView } from "@codemirror/view";
 import { Copy, Download } from "lucide-react";
 import { parseSpec, stringifySpec, type SpecIssue } from "@golive/spec";
+import { useMessages } from "@/i18n/client";
+import { projectFilesMessages } from "@/i18n/messages/project-files";
 import { useStore } from "@/lib/store";
 import { exportYaml } from "@/lib/format";
 import { Button, StatusIcon } from "./ui";
@@ -17,6 +19,7 @@ import type { WorkspaceProps } from "./workspace";
  * updates the Studio. Invalid YAML is kept locally with inline errors.
  */
 export function YamlEditor({ project }: WorkspaceProps) {
+  const t = useMessages(projectFilesMessages);
   const replace = useStore((s) => s.replaceSpec);
   const canonical = useMemo(() => stringifySpec(project.spec), [project.spec]);
   const [text, setText] = useState(canonical);
@@ -50,7 +53,7 @@ export function YamlEditor({ project }: WorkspaceProps) {
         const r = parseSpec(view.state.doc.toString());
         return r.issues.map<Diagnostic>((i) => {
           const line = view.state.doc.line(Math.min(Math.max(i.line ?? 1, 1), view.state.doc.lines));
-          return { from: line.from, to: line.to, severity: "error", message: i.path.length ? `${i.path.join(".")} : ${i.message}` : i.message };
+          return { from: line.from, to: line.to, severity: "error", message: i.path.length ? `${i.path.join(".")}: ${i.message}` : i.message };
         });
       }, { delay: 250 }),
     [],
@@ -77,18 +80,18 @@ export function YamlEditor({ project }: WorkspaceProps) {
           <StatusIcon status={issues.length ? "fail" : "pass"} size={13} />
           {issues.length ? (
             <span className="text-red">
-              {issues.length} erreur{issues.length > 1 ? "s" : ""}. Le Studio garde la dernière version valide.
+              {t.yamlErrors(issues.length)}
             </span>
           ) : (
-            <span className="text-fg-2">GoLive Spec valide, synchronisé avec le Studio.</span>
+            <span className="text-fg-2">{t.yamlValid}</span>
           )}
         </div>
         <div className="flex gap-2">
           <Button size="sm" icon={<Copy size={13} />} onClick={() => void navigator.clipboard.writeText(text)}>
-            Copier
+            {t.copy}
           </Button>
           <Button size="sm" icon={<Download size={13} />} onClick={() => exportYaml(project.spec)} disabled={issues.length > 0}>
-            Télécharger
+            {t.download}
           </Button>
         </div>
       </div>
@@ -104,7 +107,7 @@ export function YamlEditor({ project }: WorkspaceProps) {
           theme={dark ? "dark" : "light"}
           height="100%"
           basicSetup={{ foldGutter: true, highlightActiveLine: true, autocompletion: false }}
-          aria-label="Éditeur golive.yaml"
+          aria-label={t.editorLabel}
         />
       </div>
     </div>

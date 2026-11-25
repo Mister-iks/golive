@@ -69,7 +69,7 @@ describe("guard proxy", () => {
 
 describe("crawl", () => {
   it("refuses private targets by default", async () => {
-    await expect(crawl(base)).rejects.toThrow(/refusée/);
+    await expect(crawl(base)).rejects.toThrow(/refused/);
   });
 
   it("visits same-site pages passively and reports what it saw", async (t) => {

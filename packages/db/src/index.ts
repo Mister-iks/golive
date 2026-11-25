@@ -28,7 +28,7 @@ export function connect(url = requireUrl(), options: { max?: number } = {}): Dat
 
 export function requireUrl() {
   const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL n'est pas défini. Exemple : postgres://golive:golive@localhost:5432/golive");
+  if (!url) throw new Error("DATABASE_URL is not set. Example: postgres://golive:golive@localhost:5432/golive");
   return url;
 }
 

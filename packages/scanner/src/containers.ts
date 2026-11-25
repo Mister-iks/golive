@@ -59,7 +59,7 @@ export function checkDockerfile(file: string, text: string): ContainerFinding[] 
       if (image !== "scratch" && !stages.has(image.toLowerCase()) && !image.includes("@sha256:") && !image.includes("$")) {
         const tag = image.includes(":") ? image.slice(image.lastIndexOf(":") + 1) : "";
         if (!tag || tag === "latest" || tag.includes("/")) {
-          out.push({ file, line: ins.line, check: "unpinned-image", message: `Image de base non épinglée : ${image}`, subject: image });
+          out.push({ file, line: ins.line, check: "unpinned-image", message: `Base image not pinned: ${image}`, subject: image });
         }
       }
       if (alias) stages.add(alias.toLowerCase());
@@ -70,7 +70,7 @@ export function checkDockerfile(file: string, text: string): ContainerFinding[] 
         const key = m[1]!;
         const value = (m[2] ?? "").replace(/^["']|["']$/g, "");
         if (SECRET_KEY.test(key) && value && !value.startsWith("$") && value.length >= 6) {
-          out.push({ file, line: ins.line, check: "secret-in-image", message: `${key} est écrit en dur dans l'image (${ins.cmd})`, subject: key });
+          out.push({ file, line: ins.line, check: "secret-in-image", message: `${key} is hard-coded in the image (${ins.cmd})`, subject: key });
         }
       }
     }
@@ -83,7 +83,7 @@ export function checkDockerfile(file: string, text: string): ContainerFinding[] 
         file,
         line: user?.line,
         check: "root-user",
-        message: user ? "Le conteneur final s'exécute explicitement en root." : "Aucune instruction USER : le conteneur final s'exécute en root.",
+        message: user ? "The final container explicitly runs as root." : "No USER instruction: the final container runs as root.",
       });
     }
   }
@@ -106,7 +106,7 @@ export function checkCompose(file: string, text: string): ContainerFinding[] {
         out.push({
           file,
           check: "published-datastore",
-          message: `Le service ${name} publie le port ${published.container} sur toutes les interfaces de l'hôte.`,
+          message: `Service ${name} publishes port ${published.container} on every host interface.`,
           subject: name,
         });
       }

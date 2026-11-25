@@ -54,8 +54,17 @@ golive:
 | `--format pretty\|json\|markdown` | Output format. |
 | `--fail-on no-go\|conditional\|never` | Which verdict makes the command fail (default: `no-go`). |
 | `--as-of <YYYY-MM-DD>` | Reference date, to replay a verdict exactly. |
+| `--lang en\|fr` | Language of the output (default `GOLIVE_LANG`, then English). |
 
-Run `golive --help` for the full list. The interface text is in French for now.
+Run `golive --help` for the full list.
+
+## Language
+
+Output is in English by default. Add `--lang fr` (or set `GOLIVE_LANG=fr`) for French: help, rule titles, explanations and findings follow.
+
+```bash
+npx @pcybox/golive check --repo . --lang fr
+```
 
 ## Privacy
 

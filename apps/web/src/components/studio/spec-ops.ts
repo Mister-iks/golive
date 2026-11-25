@@ -1,4 +1,4 @@
-import { KINDS, parseTech, type ActorKind, type Component, type ComponentKind, type Protocol, type Spec } from "@golive/spec";
+import { parseTech, type ActorKind, type Component, type ComponentKind, type Protocol, type Spec } from "@golive/spec";
 
 export function uniqueId(spec: Spec, base: string): string {
   const taken = new Set([...spec.components.map((c) => c.id), ...spec.actors.map((a) => a.id)]);
@@ -41,10 +41,11 @@ export function removeElement(spec: Spec, id: string): Spec {
   };
 }
 
-export function renameElement(spec: Spec, from: string, to: string): Spec | string {
+/** Returns the renamed spec, or an error code the interface translates. */
+export function renameElement(spec: Spec, from: string, to: string): Spec | "invalid" | "taken" {
   if (from === to) return spec;
-  if (!/^[a-z0-9][a-z0-9-_]*$/i.test(to)) return "Lettres, chiffres, - et _ uniquement.";
-  if (spec.components.some((c) => c.id === to) || spec.actors.some((a) => a.id === to)) return "Cet identifiant existe déjà.";
+  if (!/^[a-z0-9][a-z0-9-_]*$/i.test(to)) return "invalid";
+  if (spec.components.some((c) => c.id === to) || spec.actors.some((a) => a.id === to)) return "taken";
   const { [from]: pos, ...layout } = spec.layout ?? {};
   return {
     ...spec,
@@ -105,10 +106,6 @@ export function updateComponent(spec: Spec, id: string, patch: Partial<Component
       return next;
     }),
   };
-}
-
-export function kindLabel(kind: ComponentKind) {
-  return KINDS[kind].label;
 }
 
 /** Find a free spot to drop a node near a point (avoids stacking). */

@@ -7,6 +7,8 @@ import { ChevronRight, Download, Eye, FileJson, FolderKanban } from "lucide-reac
 import type { Report } from "@golive/engine";
 import { useStore, type Project } from "@/lib/store";
 import { download, exportYaml, slug } from "@/lib/format";
+import { useMessages } from "@/i18n/client";
+import { workspaceMessages } from "@/i18n/messages/workspace";
 import { useProject, useReport } from "@/lib/use-report";
 import { Board } from "./board";
 import { Checks } from "./checks";
@@ -19,12 +21,12 @@ import { Button, cx, Empty, Kbd, ScoreGauge, Tip, VerdictPill } from "./ui";
 import { YamlEditor } from "./yaml-editor";
 
 const TABS = [
-  { id: "studio", label: "Studio", key: "1" },
-  { id: "sheet", label: "Fiche projet", key: "2" },
-  { id: "checks", label: "Contrôles", key: "3" },
-  { id: "tasks", label: "Tâches", key: "4" },
-  { id: "report", label: "Rapport", key: "5" },
-  { id: "spec", label: "golive.yaml", key: "6" },
+  { id: "studio", key: "1" },
+  { id: "sheet", key: "2" },
+  { id: "checks", key: "3" },
+  { id: "tasks", key: "4" },
+  { id: "report", key: "5" },
+  { id: "spec", key: "6" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -35,6 +37,7 @@ export interface WorkspaceProps {
 }
 
 export function Workspace({ id }: { id: string }) {
+  const m = useMessages(workspaceMessages);
   const { project, error } = useProject(id);
   const report = useReport(project);
   const saving = useStore((s) => s.saving[id]);
@@ -63,7 +66,7 @@ export function Workspace({ id }: { id: string }) {
   if (error) {
     return (
       <Shell>
-        <Empty icon={<FolderKanban size={16} />} title="Projet introuvable" action={<Link href="/"><Button>Retour aux projets</Button></Link>}>
+        <Empty icon={<FolderKanban size={16} />} title={m.notFound} action={<Link href="/"><Button>{m.backToProjects}</Button></Link>}>
           {error}
         </Empty>
       </Shell>
@@ -80,7 +83,7 @@ export function Workspace({ id }: { id: string }) {
         <div className="flex h-12 items-center justify-between gap-4 px-5">
           <div className="flex min-w-0 items-center gap-1.5 text-[13px]">
             <Link href="/" className="text-fg-3 hover:text-fg">
-              Projets
+              {m.projects}
             </Link>
             <ChevronRight size={13} className="text-fg-4" />
             <ProjectName project={project} />
@@ -89,12 +92,12 @@ export function Workspace({ id }: { id: string }) {
             <span className="text-[11px] text-fg-3 max-md:hidden" aria-live="polite">
               {!project.rights.edit ? (
                 <span className="flex items-center gap-1">
-                  <Eye size={12} /> {project.rights.contribute ? "Contribution" : "Lecture seule"}
+                  <Eye size={12} /> {project.rights.contribute ? m.contribution : m.readOnly}
                 </span>
               ) : saving ? (
-                "Enregistrement…"
+                m.saving
               ) : (
-                "Enregistré"
+                m.saved
               )}
             </span>
             <Tip label={report.verdict.reasons.join(" ")}>
@@ -105,8 +108,8 @@ export function Workspace({ id }: { id: string }) {
             </Tip>
             <Menu
               trigger={
-                <Button icon={<Download size={14} />} aria-label="Exporter">
-                  Exporter
+                <Button icon={<Download size={14} />} aria-label={m.export}>
+                  {m.export}
                 </Button>
               }
             >
@@ -117,14 +120,14 @@ export function Workspace({ id }: { id: string }) {
                 icon={<FileJson size={14} />}
                 onSelect={() => download(`golive-report-${slug(project.spec.project.name)}.json`, JSON.stringify(report, null, 2), "application/json")}
               >
-                Rapport JSON
+                {m.jsonReport}
               </MenuItem>
             </Menu>
           </div>
         </div>
-        <nav className="flex h-10 items-end gap-1 px-3" role="tablist" aria-label="Sections du projet">
+        <nav className="flex h-10 items-end gap-1 px-3" role="tablist" aria-label={m.sections}>
           {TABS.map((t) => (
-            <Tip key={t.id} label={<span className="flex items-center gap-1.5">Raccourci <Kbd>Alt</Kbd><Kbd>{t.key}</Kbd></span>} side="bottom">
+            <Tip key={t.id} label={<span className="flex items-center gap-1.5">{m.shortcut} <Kbd>Alt</Kbd><Kbd>{t.key}</Kbd></span>} side="bottom">
               <button
                 role="tab"
                 aria-selected={tab === t.id}
@@ -135,7 +138,7 @@ export function Workspace({ id }: { id: string }) {
                   t.id === "spec" && "font-mono text-xs",
                 )}
               >
-                {t.label}
+                {m.tabs[t.id]}
                 {t.id === "checks" && report.counts.blocking > 0 && <Count tone="red">{report.counts.blocking}</Count>}
                 {t.id === "tasks" && openTasks > 0 && <Count>{openTasks}</Count>}
                 {tab === t.id && <span className="absolute inset-x-2 -bottom-px h-[2px] rounded-full bg-fg" />}
@@ -166,6 +169,7 @@ function Count({ children, tone }: { children: ReactNode; tone?: "red" }) {
 }
 
 function ProjectName({ project }: { project: Project }) {
+  const m = useMessages(workspaceMessages);
   const update = useStore((s) => s.update);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(project.spec.project.name);
@@ -188,7 +192,7 @@ function ProjectName({ project }: { project: Project }) {
           if (e.key === "Escape") setEditing(false);
         }}
         className="h-7 w-64 rounded-md border border-line-strong bg-surface px-2 text-[13px] font-medium outline-none"
-        aria-label="Nom du projet"
+        aria-label={m.projectName}
       />
     );
   }
@@ -199,7 +203,7 @@ function ProjectName({ project }: { project: Project }) {
         setEditing(true);
       }}
       className="truncate rounded-md px-1.5 py-0.5 font-medium hover:bg-sunken"
-      title="Renommer"
+      title={m.rename}
     >
       {project.spec.project.name}
     </button>

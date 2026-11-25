@@ -9,7 +9,7 @@ let transport: Transporter | undefined;
 export async function sendMail(to: string, subject: string, text: string) {
   const url = process.env.SMTP_URL;
   if (!url) {
-    console.info(`[mail] SMTP_URL absent, e-mail non envoyé.\n  À : ${to}\n  Objet : ${subject}\n${text.replace(/^/gm, "  ")}`);
+    console.info(`[mail] SMTP_URL not set, e-mail not sent.\n  To: ${to}\n  Subject: ${subject}\n${text.replace(/^/gm, "  ")}`);
     return { sent: false };
   }
   transport ??= createTransport(url);

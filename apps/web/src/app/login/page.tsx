@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthFrame } from "@/components/auth-frame";
 import { Button, Field, Input } from "@/components/ui";
+import { useMessages } from "@/i18n/client";
+import { authMessages } from "@/i18n/messages/auth";
 import { authClient, safeNext } from "@/lib/auth-client";
 
 export default function LoginPage() {
@@ -16,6 +18,9 @@ export default function LoginPage() {
 }
 
 function Login() {
+  const m = useMessages(authMessages);
+  const t = m.login;
+  const s2 = m.second;
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const [email, setEmail] = useState(params.get("email") ?? "");
@@ -41,7 +46,7 @@ function Login() {
     setError(undefined);
     const { data, error } = await authClient.signIn.email({ email, password });
     setBusy(false);
-    if (error) return setError(error.status === 401 ? "E-mail ou mot de passe incorrect." : error.message ?? "Connexion impossible.");
+    if (error) return setError(error.status === 401 ? t.wrong : error.message ?? t.failed);
     if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
       setPassword("");
       return setSecond(true);
@@ -57,13 +62,13 @@ function Login() {
       ? await authClient.twoFactor.verifyBackupCode({ code: value, trustDevice: trust })
       : await authClient.twoFactor.verifyTotp({ code: value, trustDevice: trust });
     setBusy(false);
-    if (error) return setError(backup ? "Code de secours incorrect ou déjà utilisé." : "Code incorrect. Attendez le code suivant et réessayez.");
+    if (error) return setError(backup ? s2.backupWrong : s2.totpWrong);
     location.assign(next);
   };
 
   if (second) {
     return (
-      <AuthFrame title="Vérification en deux étapes" subtitle={backup ? "Saisissez l'un de vos codes de secours." : "Saisissez le code à 6 chiffres affiché par votre application d'authentification."}>
+      <AuthFrame title={s2.title} subtitle={backup ? s2.backupSubtitle : s2.totpSubtitle}>
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
@@ -81,14 +86,14 @@ function Login() {
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="h-10 text-center text-[16px] tracking-[0.2em]"
-            aria-label={backup ? "Code de secours" : "Code à 6 chiffres"}
+            aria-label={backup ? s2.backupLabel : s2.totpLabel}
           />
           <label className="flex items-center gap-2 text-[13px] text-fg-2">
-            <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> Faire confiance à cet appareil pendant 30 jours
+            <input type="checkbox" checked={trust} onChange={(e) => setTrust(e.target.checked)} /> {s2.trust}
           </label>
           {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
           <Button type="submit" variant="primary" size="lg" disabled={busy || !code.trim()}>
-            Vérifier
+            {s2.verify}
           </Button>
           <button
             type="button"
@@ -99,7 +104,7 @@ function Login() {
               setError(undefined);
             }}
           >
-            {backup ? "Utiliser l'application d'authentification" : "Téléphone perdu ? Utiliser un code de secours"}
+            {backup ? s2.useApp : s2.useBackup}
           </button>
         </form>
       </AuthFrame>
@@ -107,25 +112,25 @@ function Login() {
   }
 
   const magic = async () => {
-    if (!email) return setError("Saisissez votre e-mail d'abord.");
+    if (!email) return setError(t.emailFirst);
     setBusy(true);
     setError(undefined);
     const { error } = await authClient.signIn.magicLink({ email, callbackURL: next });
     setBusy(false);
-    if (error) return setError(error.message ?? "Envoi impossible.");
-    setInfo(`Si un compte existe pour ${email}, un lien de connexion valable 10 minutes vient d'être envoyé.`);
+    if (error) return setError(error.message ?? t.sendFailed);
+    setInfo(t.linkSent(email));
   };
 
   return (
     <AuthFrame
-      title="Connexion"
-      subtitle="Retrouvez vos projets et leurs verdicts."
+      title={t.title}
+      subtitle={t.subtitle}
       footer={
         config?.signup === "first" && (
           <>
-            Première connexion ?{" "}
+            {t.firstTime}{" "}
             <Link href={`/signup${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-fg underline-offset-2 hover:underline">
-              Créer un compte
+              {t.createAccount}
             </Link>
           </>
         )
@@ -138,20 +143,20 @@ function Login() {
           void submit();
         }}
       >
-        <Field label="E-mail">
+        <Field label={m.email}>
           <Input type="email" autoComplete="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label="Mot de passe">
+        <Field label={m.password}>
           <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>
         {error && <p className="rounded-md border border-red-line bg-red-soft px-3 py-2 text-[13px] text-red">{error}</p>}
         {info && <p className="rounded-md border border-go-line bg-go-soft px-3 py-2 text-[13px] text-go">{info}</p>}
         <Button type="submit" variant="primary" size="lg" disabled={busy}>
-          Se connecter
+          {t.submit}
         </Button>
         {config?.mail && (
           <Button type="button" size="lg" disabled={busy} onClick={() => void magic()}>
-            Recevoir un lien par e-mail
+            {t.magic}
           </Button>
         )}
       </form>

@@ -18,7 +18,8 @@ import {
 import { orgRole, requireOrgAdmin } from "./access";
 import { APP_URL } from "./auth";
 import { db } from "./db";
-import { forbidden, HttpError, notFound } from "./http";
+import type { Lang } from "@/i18n";
+import { forbidden, HttpError, L, notFound } from "./http";
 import { sendMail } from "./mail";
 
 export const INVITE_DAYS = 7;
@@ -61,8 +62,8 @@ export async function changeMemberRole(tx: Tx, actorId: string, orgId: string, u
   const mine = await orgRole(tx, orgId);
   requireOrgAdmin(mine);
   const [target] = await tx.select().from(orgMembers).where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, userId)));
-  if (!target) throw notFound("Membre introuvable.");
-  if ((target.role === "owner" || role === "owner") && mine !== "owner") throw forbidden("Seul un propriétaire peut nommer ou retirer un propriétaire.");
+  if (!target) throw notFound(L("Member not found.", "Membre introuvable."));
+  if ((target.role === "owner" || role === "owner") && mine !== "owner") throw forbidden(L("Only an owner can appoint or remove an owner.", "Seul un propriétaire peut nommer ou retirer un propriétaire."));
   if (target.role === "owner" && role !== "owner") await assertAnotherOwner(tx, orgId, userId);
   await tx.update(orgMembers).set({ role }).where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, userId)));
   await logActivity(tx, { orgId, actorId, action: "member.role", target: userId, meta: { from: target.role, to: role } });
@@ -72,9 +73,9 @@ export async function removeMember(tx: Tx, actorId: string, orgId: string, userI
   const mine = await orgRole(tx, orgId);
   if (userId !== actorId) requireOrgAdmin(mine);
   const [target] = await tx.select().from(orgMembers).where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.userId, userId)));
-  if (!target) throw notFound("Membre introuvable.");
+  if (!target) throw notFound(L("Member not found.", "Membre introuvable."));
   if (target.role === "owner") {
-    if (mine !== "owner") throw forbidden("Seul un propriétaire peut retirer un propriétaire.");
+    if (mine !== "owner") throw forbidden(L("Only an owner can remove an owner.", "Seul un propriétaire peut retirer un propriétaire."));
     await assertAnotherOwner(tx, orgId, userId);
   }
   // Leaving happens as the database owner: once the membership row is gone, RLS would hide the rest.
@@ -87,7 +88,7 @@ export async function removeMember(tx: Tx, actorId: string, orgId: string, userI
 
 async function assertAnotherOwner(tx: Tx, orgId: string, userId: string) {
   const owners = await tx.select({ id: orgMembers.userId }).from(orgMembers).where(and(eq(orgMembers.orgId, orgId), eq(orgMembers.role, "owner")));
-  if (!owners.some((o) => o.id !== userId)) throw new HttpError(400, "L'organisation doit garder au moins un propriétaire.");
+  if (!owners.some((o) => o.id !== userId)) throw new HttpError(400, L("The organization must keep at least one owner.", "L'organisation doit garder au moins un propriétaire."));
 }
 
 /* ------------------------------------------------------------ invitations */
@@ -97,7 +98,8 @@ export interface InviteInput {
   orgRole: "admin" | "member";
 }
 
-export async function invite(tx: Tx, actor: { id: string; name: string }, orgId: string, input: InviteInput) {
+/** The invitation e-mail is written in the language of the person who sends it. */
+export async function invite(tx: Tx, actor: { id: string; name: string }, orgId: string, input: InviteInput, lang: Lang = "en") {
   requireOrgAdmin(await orgRole(tx, orgId));
   const email = input.email.trim().toLowerCase();
   const already = await tx
@@ -105,7 +107,7 @@ export async function invite(tx: Tx, actor: { id: string; name: string }, orgId:
     .from(orgMembers)
     .innerJoin(users, eq(users.id, orgMembers.userId))
     .where(and(eq(orgMembers.orgId, orgId), eq(sql`lower(${users.email})`, email)));
-  if (already.length) throw new HttpError(409, "Cette personne fait déjà partie de l'organisation.");
+  if (already.length) throw new HttpError(409, L("This person is already a member of the organization.", "Cette personne fait déjà partie de l'organisation."));
 
   // A new invitation to the same address replaces the previous one.
   await tx
@@ -128,11 +130,18 @@ export async function invite(tx: Tx, actor: { id: string; name: string }, orgId:
   await logActivity(tx, { orgId, actorId: actor.id, action: "invitation.sent", target: email, meta: { orgRole: input.orgRole } });
   const link = `${APP_URL}/invite/${token}`;
   const [org] = await tx.select({ name: organizations.name }).from(organizations).where(eq(organizations.id, orgId));
-  const mail = await sendMail(
-    email,
-    `${actor.name} vous invite sur PcyBox GoLive`,
-    `Bonjour,\n\n${actor.name} vous invite à rejoindre « ${org?.name} » sur PcyBox GoLive.\n\nAcceptez l'invitation avec ce lien, valable ${INVITE_DAYS} jours :\n${link}\n\nSi vous ne connaissez pas l'expéditeur, ignorez ce message.`,
-  );
+  const mail =
+    lang === "fr"
+      ? await sendMail(
+          email,
+          `${actor.name} vous invite sur PcyBox GoLive`,
+          `Bonjour,\n\n${actor.name} vous invite à rejoindre « ${org?.name} » sur PcyBox GoLive.\n\nAcceptez l'invitation avec ce lien, valable ${INVITE_DAYS} jours :\n${link}\n\nSi vous ne connaissez pas l'expéditeur, ignorez ce message.`,
+        )
+      : await sendMail(
+          email,
+          `${actor.name} invited you to PcyBox GoLive`,
+          `Hello,\n\n${actor.name} invited you to join "${org?.name}" on PcyBox GoLive.\n\nAccept the invitation with this link, valid for ${INVITE_DAYS} days:\n${link}\n\nIf you do not know the sender, ignore this message.`,
+        );
   return { id: inv!.id, link, emailSent: mail.sent };
 }
 
@@ -143,14 +152,14 @@ export async function revokeInvitation(tx: Tx, actorId: string, orgId: string, i
     .set({ revokedAt: new Date() })
     .where(and(eq(invitations.id, id), eq(invitations.orgId, orgId), isNull(invitations.acceptedAt)))
     .returning();
-  if (!inv) throw notFound("Invitation introuvable.");
+  if (!inv) throw notFound(L("Invitation not found.", "Invitation introuvable."));
   await logActivity(tx, { orgId, actorId, action: "invitation.revoked", target: inv.email });
 }
 
-export async function resendInvitation(tx: Tx, actor: { id: string; name: string }, orgId: string, id: string) {
+export async function resendInvitation(tx: Tx, actor: { id: string; name: string }, orgId: string, id: string, lang: Lang = "en") {
   const [inv] = await tx.select().from(invitations).where(and(eq(invitations.id, id), eq(invitations.orgId, orgId)));
-  if (!inv || inv.acceptedAt) throw notFound("Invitation introuvable.");
-  return invite(tx, actor, orgId, { email: inv.email, orgRole: inv.orgRole === "admin" ? "admin" : "member" });
+  if (!inv || inv.acceptedAt) throw notFound(L("Invitation not found.", "Invitation introuvable."));
+  return invite(tx, actor, orgId, { email: inv.email, orgRole: inv.orgRole === "admin" ? "admin" : "member" }, lang);
 }
 
 /** Public preview: only what the invitee needs to decide. Runs without a session. */
@@ -161,7 +170,7 @@ export async function previewInvitation(token: string) {
     .innerJoin(organizations, eq(organizations.id, invitations.orgId))
     .leftJoin(users, eq(users.id, invitations.invitedBy))
     .where(eq(invitations.tokenHash, hash(token)));
-  if (!row || row.inv.revokedAt) throw notFound("Invitation introuvable ou annulée.");
+  if (!row || row.inv.revokedAt) throw notFound(L("Invitation not found or cancelled.", "Invitation introuvable ou annulée."));
   return {
     org: row.org,
     inviter: row.inviter,
@@ -182,8 +191,8 @@ export async function acceptInvitation(user: { id: string; email: string }, toke
       .from(invitations)
       .where(and(eq(invitations.tokenHash, hash(token)), isNull(invitations.acceptedAt), isNull(invitations.revokedAt), gt(invitations.expiresAt, new Date())))
       .for("update");
-    if (!inv) throw new HttpError(410, "Invitation expirée, annulée ou déjà utilisée. Demandez-en une nouvelle.");
-    if (inv.email !== user.email.toLowerCase()) throw forbidden(`Cette invitation est destinée à ${inv.email}. Connectez-vous avec cette adresse.`);
+    if (!inv) throw new HttpError(410, L("Invitation expired, cancelled or already used. Ask for a new one.", "Invitation expirée, annulée ou déjà utilisée. Demandez-en une nouvelle."));
+    if (inv.email !== user.email.toLowerCase()) throw forbidden(L(`This invitation is for ${inv.email}. Sign in with that address.`, `Cette invitation est destinée à ${inv.email}. Connectez-vous avec cette adresse.`));
 
     const [existing] = await tx.select().from(orgMembers).where(and(eq(orgMembers.orgId, inv.orgId), eq(orgMembers.userId, user.id)));
     if (!existing) await tx.insert(orgMembers).values({ orgId: inv.orgId, userId: user.id, role: inv.orgRole });

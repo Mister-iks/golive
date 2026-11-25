@@ -1,5 +1,11 @@
 "use client";
 
+/** Interface language outside React (the root layout sets <html lang>). */
+export const uiLang = (): "en" | "fr" => (typeof document !== "undefined" && document.documentElement.lang === "fr" ? "fr" : "en");
+
+/** Picks the message in the interface language, for code outside components. */
+export const tl = (en: string, fr: string) => (uiLang() === "fr" ? fr : en);
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -22,12 +28,12 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(0, "Serveur injoignable. Vérifiez votre connexion.");
+    throw new ApiError(0, tl("Server unreachable. Check your connection.", "Serveur injoignable. Vérifiez votre connexion."));
   }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; code?: string };
   if (res.status === 401 && typeof window !== "undefined" && !location.pathname.startsWith("/login")) {
     location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
   }
-  if (!res.ok) throw new ApiError(res.status, data.error ?? `Erreur ${res.status}`, data.code);
+  if (!res.ok) throw new ApiError(res.status, data.error ?? tl(`Error ${res.status}`, `Erreur ${res.status}`), data.code);
   return data;
 }

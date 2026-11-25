@@ -2,7 +2,7 @@ import { z } from "zod";
 import { and, asc, domainVerifications, eq, logActivity } from "@golive/db";
 import { orgRole } from "@/server/access";
 import { DNS_PREFIX, DOMAIN_FILE, newToken, normalizeHost } from "@/server/domains";
-import { forbidden, HttpError, readJson, route } from "@/server/http";
+import { forbidden, HttpError, L, readJson, route } from "@/server/http";
 
 export const runtime = "nodejs";
 
@@ -20,7 +20,8 @@ export const POST = route<{ orgId: string }>(async ({ req, params, user, as }) =
   try {
     hostname = normalizeHost(body.hostname);
   } catch (e) {
-    throw new HttpError(400, (e as Error).message);
+    void e;
+    throw new HttpError(400, L("Invalid domain name.", "Nom de domaine invalide."));
   }
   return as(async (tx) => {
     if ((await orgRole(tx, params.orgId)) === "guest") throw forbidden();

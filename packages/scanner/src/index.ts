@@ -38,19 +38,19 @@ export async function scanRepo(path: string, options: ScanOptions = {}): Promise
   const { packages, manifests } = collectPackages(root, files);
   const dependencies: RepoObservation["dependencies"] = { checked: false, manifests, vulnerabilities: [] };
   if (options.offline) {
-    dependencies.error = "Analyse hors ligne : vulnérabilités non vérifiées.";
-    tools.push({ name: "osv.dev", used: false, note: "hors ligne" });
+    dependencies.error = "Offline scan: vulnerabilities not checked.";
+    tools.push({ name: "osv.dev", used: false, note: "offline" });
   } else if (packages.length === 0) {
     dependencies.checked = true;
-    tools.push({ name: "osv.dev", used: false, note: "aucun lockfile" });
+    tools.push({ name: "osv.dev", used: false, note: "no lockfile" });
   } else {
     try {
       dependencies.vulnerabilities = await lookupVulnerabilities(packages);
       dependencies.checked = true;
-      tools.push({ name: "osv.dev", used: true, note: `${packages.length} paquets` });
+      tools.push({ name: "osv.dev", used: true, note: `${packages.length} packages` });
     } catch (e) {
-      dependencies.error = `Base OSV injoignable : ${(e as Error).message}`;
-      tools.push({ name: "osv.dev", used: false, note: "injoignable" });
+      dependencies.error = `OSV database unreachable: ${(e as Error).message}`;
+      tools.push({ name: "osv.dev", used: false, note: "unreachable" });
     }
   }
 
@@ -71,7 +71,7 @@ function runGitleaks(root: string): { tool: ScanTool; findings: SecretFinding[] 
   try {
     version = execFileSync("gitleaks", ["version"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   } catch {
-    return { tool: { name: "gitleaks", used: false, note: "non installé" }, findings: [] };
+    return { tool: { name: "gitleaks", used: false, note: "not installed" }, findings: [] };
   }
   const dir = mkdtempSync(join(tmpdir(), "golive-gitleaks-"));
   const report = join(dir, "report.json");
@@ -89,7 +89,7 @@ function runGitleaks(root: string): { tool: ScanTool; findings: SecretFinding[] 
     }));
     return { tool: { name: "gitleaks", version, used: true }, findings };
   } catch {
-    return { tool: { name: "gitleaks", version, used: false, note: "échec de l'analyse" }, findings: [] };
+    return { tool: { name: "gitleaks", version, used: false, note: "scan failed" }, findings: [] };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -6,6 +6,9 @@ import { Dialog as RDialog, Popover as RPopover, Tooltip as RTooltip } from "rad
 import { X } from "lucide-react";
 import type { Decision } from "@golive/engine";
 import type { Severity, Status } from "@golive/packs-sdk";
+import { useLang, useMessages } from "@/i18n/client";
+import type { Lang } from "@/i18n";
+import { uiMessages } from "@/i18n/messages/ui";
 
 export const cx = clsx;
 
@@ -79,15 +82,20 @@ export function Field({ label, hint, children, className }: { label: string; hin
 
 /* ---------------------------------------------------------- Signal atoms */
 
-export const SEVERITY_LABEL: Record<Severity, string> = { blocker: "Bloquant", major: "Majeur", minor: "Mineur", info: "Info" };
-export const STATUS_LABEL: Record<Status, string> = {
-  pass: "OK",
-  warn: "Avertissement",
-  fail: "Échec",
-  na: "Non applicable",
-  evidence: "Preuve requise",
-  "not-run": "Non exécuté",
-};
+/** English labels, kept for code outside React. In components, use useLabels(). */
+export const SEVERITY_LABEL: Record<Severity, string> = uiMessages.en.severity;
+export const STATUS_LABEL: Record<Status, string> = uiMessages.en.status;
+
+/** Severity, status and verdict labels in a given language. */
+export function labels(lang: Lang) {
+  const m = uiMessages[lang];
+  return { severity: m.severity as Record<Severity, string>, status: m.status as Record<Status, string>, decision: m.decision as Record<Decision, string> };
+}
+
+/** Severity, status and verdict labels in the current language. */
+export function useLabels() {
+  return labels(useLang().lang);
+}
 
 export function SeverityTag({ severity, className }: { severity: Severity; className?: string }) {
   return (
@@ -101,13 +109,14 @@ export function SeverityTag({ severity, className }: { severity: Severity; class
         className,
       )}
     >
-      {SEVERITY_LABEL[severity]}
+      {useLabels().severity[severity]}
     </span>
   );
 }
 
 export function StatusIcon({ status, size = 14, className }: { status: Status; size?: number; className?: string }) {
-  const common = { width: size, height: size, viewBox: "0 0 16 16", className: cx("shrink-0", className), "aria-label": STATUS_LABEL[status], role: "img" as const };
+  const label = useLabels().status[status];
+  const common = { width: size, height: size, viewBox: "0 0 16 16", className: cx("shrink-0", className), "aria-label": label, role: "img" as const };
   switch (status) {
     case "pass":
       return (
@@ -153,7 +162,8 @@ export function StatusIcon({ status, size = 14, className }: { status: Status; s
   }
 }
 
-export const DECISION_LABEL: Record<Decision, string> = { go: "Go", conditional: "Go conditionnel", "no-go": "No-Go" };
+/** English verdict labels, kept for code outside React. In components, use useLabels(). */
+export const DECISION_LABEL: Record<Decision, string> = uiMessages.en.decision;
 
 export function VerdictPill({ decision, size = "md", className }: { decision: Decision; size?: "sm" | "md"; className?: string }) {
   return (
@@ -168,20 +178,21 @@ export function VerdictPill({ decision, size = "md", className }: { decision: De
       )}
     >
       <span className={cx("size-1.5 rounded-full", decision === "go" ? "bg-go" : decision === "conditional" ? "bg-amber" : "bg-red")} />
-      {DECISION_LABEL[decision]}
+      {useLabels().decision[decision]}
     </span>
   );
 }
 
 /** A thin arc gauge, like an instrument dial. */
 export function ScoreGauge({ value, threshold, size = 44 }: { value: number; threshold?: number; size?: number }) {
+  const t = useMessages(uiMessages);
   const r = 16;
   const c = 2 * Math.PI * r;
   const arc = 0.75; // 270° dial
   const color = value >= (threshold ?? 80) ? "var(--go)" : value >= 50 ? "var(--amber)" : "var(--red)";
   const tAngle = threshold !== undefined ? 135 + (threshold / 100) * 270 : 0;
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label={`Score ${value} sur 100`}>
+    <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label={t.score(value)}>
       <g transform="rotate(135 20 20)">
         <circle cx="20" cy="20" r={r} fill="none" stroke="var(--line)" strokeWidth="3" strokeDasharray={`${c * arc} ${c}`} strokeLinecap="round" />
         <circle
@@ -243,6 +254,7 @@ export function Dialog({
   children: ReactNode;
   width?: number;
 }) {
+  const t = useMessages(uiMessages);
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
@@ -257,7 +269,7 @@ export function Dialog({
               {description && <RDialog.Description className="mt-0.5 text-[13px] text-fg-3">{description}</RDialog.Description>}
             </div>
             <RDialog.Close asChild>
-              <Button variant="ghost" size="sm" icon={<X size={15} />} aria-label="Fermer" />
+              <Button variant="ghost" size="sm" icon={<X size={15} />} aria-label={t.close} />
             </RDialog.Close>
           </div>
           {children}

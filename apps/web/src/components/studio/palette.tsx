@@ -2,23 +2,27 @@
 
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { ACTORS, ACTOR_KINDS, COMPONENT_KINDS, KINDS, type ActorKind, type ComponentKind } from "@golive/spec";
+import { ACTOR_KINDS, COMPONENT_KINDS, type ActorKind, type ComponentKind, type KindGroup } from "@golive/spec";
+import { useCatalog, useMessages } from "@/i18n/client";
+import { studioMessages } from "@/i18n/messages/studio";
 import { ACTOR_ICON, KIND_ICON } from "../kind-icon";
 
 export type PaletteItem = { type: "component"; kind: ComponentKind } | { type: "actor"; kind: ActorKind };
 export const DND_MIME = "application/x-golive-item";
 
-const GROUP_ORDER = ["Acteurs", "Clients", "Applicatif", "Données", "Réseau", "Services tiers", "Exploitation"] as const;
+const GROUP_ORDER: ("actors" | KindGroup)[] = ["actors", "clients", "app", "data", "network", "third-party", "operations"];
 
 export function Palette({ onAdd }: { onAdd: (item: PaletteItem) => void }) {
   const [q, setQ] = useState("");
+  const t = useMessages(studioMessages);
+  const { KINDS, ACTORS, KIND_GROUPS } = useCatalog();
 
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const match = (...s: string[]) => !needle || s.some((x) => x.toLowerCase().includes(needle));
-    const items: { group: string; item: PaletteItem; label: string; hint: string }[] = [
+    const items: { group: "actors" | KindGroup; item: PaletteItem; label: string; hint: string }[] = [
       ...ACTOR_KINDS.filter((k) => match(ACTORS[k].label, ACTORS[k].hint, k)).map((k) => ({
-        group: "Acteurs",
+        group: "actors" as const,
         item: { type: "actor" as const, kind: k },
         label: ACTORS[k].label,
         hint: ACTORS[k].hint,
@@ -31,26 +35,26 @@ export function Palette({ onAdd }: { onAdd: (item: PaletteItem) => void }) {
       })),
     ];
     return GROUP_ORDER.map((g) => ({ g, items: items.filter((i) => i.group === g) })).filter((x) => x.items.length);
-  }, [q]);
+  }, [q, KINDS, ACTORS]);
 
   return (
-    <aside className="flex w-[228px] shrink-0 flex-col border-r border-line bg-surface" aria-label="Bibliothèque de composants">
+    <aside className="flex w-[228px] shrink-0 flex-col border-r border-line bg-surface" aria-label={t.library}>
       <div className="border-b border-line p-2.5">
         <label className="flex h-8 items-center gap-2 rounded-md border border-line bg-surface-2 px-2.5 focus-within:border-fg-3">
           <Search size={13} className="text-fg-3" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Composant ou techno…"
+            placeholder={t.searchPlaceholder}
             className="w-full bg-transparent text-[13px] outline-none placeholder:text-fg-4"
-            aria-label="Rechercher un composant"
+            aria-label={t.searchLabel}
           />
         </label>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-4">
         {groups.map(({ g, items }) => (
           <div key={g} className="pt-3">
-            <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">{g}</p>
+            <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">{g === "actors" ? t.actors : KIND_GROUPS[g]}</p>
             {items.map(({ item, label, hint }) => {
               const Icon = item.type === "actor" ? ACTOR_ICON[item.kind] : KIND_ICON[item.kind];
               return (
@@ -62,7 +66,7 @@ export function Palette({ onAdd }: { onAdd: (item: PaletteItem) => void }) {
                     e.dataTransfer.effectAllowed = "copy";
                   }}
                   onClick={() => onAdd(item)}
-                  title={`${hint}. Glissez sur le canevas ou cliquez pour ajouter.`}
+                  title={t.addHint(hint)}
                   className="group flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-left text-[13px] text-fg-2 hover:bg-sunken hover:text-fg active:cursor-grabbing"
                 >
                   <span className="grid size-6 place-items-center rounded-md border border-line bg-surface-2 text-fg-2 group-hover:border-line-strong">
@@ -74,7 +78,7 @@ export function Palette({ onAdd }: { onAdd: (item: PaletteItem) => void }) {
             })}
           </div>
         ))}
-        {groups.length === 0 && <p className="px-2 pt-6 text-center text-xs text-fg-3">Aucun résultat.</p>}
+        {groups.length === 0 && <p className="px-2 pt-6 text-center text-xs text-fg-3">{t.noResult}</p>}
       </div>
     </aside>
   );

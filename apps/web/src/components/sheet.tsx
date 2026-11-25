@@ -2,28 +2,18 @@
 
 import type { ReactNode } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import {
-  AUDIENCES,
-  COUNTRIES,
-  CRITICALITY,
-  DATA_LABELS,
-  FEATURE_LABELS,
-  FEATURES,
-  PERSONAL_DATA,
-  PROJECT_TYPES,
-  PROJECT_TYPE_LABELS,
-  SENSITIVE_DATA,
-  type Spec,
-} from "@golive/spec";
+import { AUDIENCES, CRITICALITY, FEATURES, PERSONAL_DATA, PROJECT_TYPES, SENSITIVE_DATA, type Spec } from "@golive/spec";
 import { COMMUNITY_PACKS, suggestProfiles } from "@golive/engine";
+import { useCatalog, useLang, useMessages } from "@/i18n/client";
+import { sheetMessages } from "@/i18n/messages/sheet";
 import { useStore } from "@/lib/store";
 import { Button, cx, Field, Input, Select, Textarea } from "./ui";
 import type { WorkspaceProps } from "./workspace";
 
-const AUDIENCE_LABELS = { public: "Grand public", authenticated: "Utilisateurs connectés", internal: "Interne à l'organisation" };
-const CRITICALITY_LABELS = { standard: "Standard", financial: "Financier", health: "Santé", "public-service": "Service public" };
-
 export function Sheet({ project }: WorkspaceProps) {
+  const t = useMessages(sheetMessages);
+  const { lang } = useLang();
+  const { COUNTRIES, DATA_LABELS, FEATURE_LABELS, PROJECT_TYPE_LABELS } = useCatalog();
   const update = useStore((s) => s.update);
   const spec = project.spec;
   const set = (fn: (s: Spec) => Spec) => update(project.id, fn);
@@ -37,52 +27,52 @@ export function Sheet({ project }: WorkspaceProps) {
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto max-w-[920px] px-6 py-8">
-        <Section title="Identité" description="Ce que vous mettez en ligne. Le type et la criticité ajustent les règles et le seuil de Go.">
+        <Section title={t.identity} description={t.identityDesc}>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nom du projet" className="col-span-2">
+            <Field label={t.projectName} className="col-span-2">
               <Input value={spec.project.name} onChange={(e) => setProject({ name: e.target.value })} />
             </Field>
-            <Field label="Type de projet">
+            <Field label={t.projectType}>
               <Select value={spec.project.type} onChange={(e) => setProject({ type: e.target.value as Spec["project"]["type"] })}>
-                {PROJECT_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {PROJECT_TYPE_LABELS[t]}
+                {PROJECT_TYPES.map((pt) => (
+                  <option key={pt} value={pt}>
+                    {PROJECT_TYPE_LABELS[pt]}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Criticité" hint="Hors standard, le seuil de Go passe de 70 à 80.">
+            <Field label={t.criticalityLabel} hint={t.criticalityHint}>
               <Select value={spec.project.criticality} onChange={(e) => setProject({ criticality: e.target.value as Spec["project"]["criticality"] })}>
                 {CRITICALITY.map((c) => (
                   <option key={c} value={c}>
-                    {CRITICALITY_LABELS[c]}
+                    {t.criticality[c]}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Public visé">
+            <Field label={t.audienceLabel}>
               <Select value={spec.project.audience} onChange={(e) => setProject({ audience: e.target.value as Spec["project"]["audience"] })}>
                 {AUDIENCES.map((a) => (
                   <option key={a} value={a}>
-                    {AUDIENCE_LABELS[a]}
+                    {t.audience[a]}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Langues" hint="Codes séparés par des virgules : fr, en, wo">
+            <Field label={t.languages} hint={t.languagesHint}>
               <Input
                 mono
                 defaultValue={spec.project.languages.join(", ")}
                 onBlur={(e) => setProject({ languages: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })}
               />
             </Field>
-            <Field label="Description" className="col-span-2">
-              <Textarea value={spec.project.description ?? ""} onChange={(e) => setProject({ description: e.target.value || undefined })} placeholder="En une ou deux phrases." />
+            <Field label={t.description} className="col-span-2">
+              <Textarea value={spec.project.description ?? ""} onChange={(e) => setProject({ description: e.target.value || undefined })} placeholder={t.descriptionPlaceholder} />
             </Field>
           </div>
         </Section>
 
-        <Section title="Pays de diffusion" description="Chaque pays active ses packs légaux : Sénégal (CDP), Union européenne (RGPD)…">
+        <Section title={t.countries} description={t.countriesDesc}>
           <Chips
             options={Object.entries(COUNTRIES).map(([code, name]) => ({ value: code, label: name, mono: code }))}
             selected={spec.project.countries}
@@ -90,14 +80,14 @@ export function Sheet({ project }: WorkspaceProps) {
           />
         </Section>
 
-        <Section title="Données personnelles" description="Ce que le service collecte ou stocke. Les données sensibles déclenchent des régimes d'autorisation.">
-          <p className="mb-2 text-xs font-medium text-fg-2">Données courantes</p>
+        <Section title={t.personalData} description={t.personalDataDesc}>
+          <p className="mb-2 text-xs font-medium text-fg-2">{t.commonData}</p>
           <Chips
             options={PERSONAL_DATA.map((d) => ({ value: d, label: DATA_LABELS[d] }))}
             selected={spec.data.personal}
             onToggle={(v) => set((s) => ({ ...s, data: { ...s.data, personal: toggle(s.data.personal, v) } }))}
           />
-          <p className="mb-2 mt-5 text-xs font-medium text-fg-2">Données sensibles</p>
+          <p className="mb-2 mt-5 text-xs font-medium text-fg-2">{t.sensitiveData}</p>
           <Chips
             tone="red"
             options={SENSITIVE_DATA.map((d) => ({ value: d, label: DATA_LABELS[d] }))}
@@ -106,7 +96,7 @@ export function Sheet({ project }: WorkspaceProps) {
           />
         </Section>
 
-        <Section title="Fonctionnalités" description="Chaque fonctionnalité entraîne des exigences : paiement ⇒ CGV et webhooks signés, comptes ⇒ MFA et suppression de compte…">
+        <Section title={t.features} description={t.featuresDesc}>
           <Chips
             options={FEATURES.map((f) => ({ value: f, label: FEATURE_LABELS[f] }))}
             selected={spec.features}
@@ -114,14 +104,14 @@ export function Sheet({ project }: WorkspaceProps) {
           />
         </Section>
 
-        <Section title="Cibles" description="Les URL auditées en couche 3. Le dépôt sera analysé en couche 2.">
+        <Section title={t.targets} description={t.targetsDesc}>
           <div className="grid gap-3">
             {(["preprod", "prod"] as const).map((k) => (
-              <Field key={k} label={k === "prod" ? "Production" : "Pré-production"}>
+              <Field key={k} label={k === "prod" ? t.prod : t.preprod}>
                 <Input
                   mono
                   type="url"
-                  placeholder={`https://${k === "prod" ? "" : "preprod."}exemple.sn`}
+                  placeholder={`https://${k === "prod" ? "" : "preprod."}example.com`}
                   defaultValue={spec.targets[k] ?? ""}
                   onBlur={(e) => {
                     const v = e.target.value.trim();
@@ -131,34 +121,34 @@ export function Sheet({ project }: WorkspaceProps) {
                 />
               </Field>
             ))}
-            <Field label="Dépôt de code">
-              <Input mono placeholder="https://github.com/organisation/projet" defaultValue={spec.targets.repository ?? ""} onBlur={(e) => set((s) => ({ ...s, targets: { ...s.targets, repository: e.target.value.trim() || undefined } }))} />
+            <Field label={t.repository}>
+              <Input mono placeholder={t.repositoryPlaceholder} defaultValue={spec.targets.repository ?? ""} onBlur={(e) => set((s) => ({ ...s, targets: { ...s.targets, repository: e.target.value.trim() || undefined } }))} />
             </Field>
           </div>
         </Section>
 
-        <Section title="Zones d'hébergement" description="Regroupez les composants par hébergeur et pays. Une zone en réseau public expose ses composants.">
+        <Section title={t.zones} description={t.zonesDesc}>
           <div className="flex flex-col gap-2">
             {spec.zones.map((z, i) => {
               const patch = (p: Partial<typeof z>) => set((s) => ({ ...s, zones: s.zones.map((x, j) => (j === i ? { ...x, ...p } : x)) }));
               return (
                 <div key={z.id} className="grid grid-cols-[1fr_1fr_120px_110px_32px] gap-2">
-                  <Input value={z.name ?? ""} placeholder={z.id} onChange={(e) => patch({ name: e.target.value || undefined })} aria-label="Nom de la zone" />
-                  <Input value={z.provider ?? ""} placeholder="Fournisseur" onChange={(e) => patch({ provider: e.target.value || undefined })} aria-label="Fournisseur" />
-                  <Select value={z.country ?? ""} onChange={(e) => patch({ country: e.target.value || undefined })} aria-label="Pays">
-                    <option value="">Pays</option>
+                  <Input value={z.name ?? ""} placeholder={z.id} onChange={(e) => patch({ name: e.target.value || undefined })} aria-label={t.zoneName} />
+                  <Input value={z.provider ?? ""} placeholder={t.provider} onChange={(e) => patch({ provider: e.target.value || undefined })} aria-label={t.provider} />
+                  <Select value={z.country ?? ""} onChange={(e) => patch({ country: e.target.value || undefined })} aria-label={t.country}>
+                    <option value="">{t.country}</option>
                     {Object.keys(COUNTRIES).map((c) => (
                       <option key={c}>{c}</option>
                     ))}
                   </Select>
-                  <Select value={z.network} onChange={(e) => patch({ network: e.target.value as "public" | "private" })} aria-label="Réseau">
-                    <option value="private">Privé</option>
-                    <option value="public">Public</option>
+                  <Select value={z.network} onChange={(e) => patch({ network: e.target.value as "public" | "private" })} aria-label={t.network}>
+                    <option value="private">{t.private}</option>
+                    <option value="public">{t.public}</option>
                   </Select>
                   <Button
                     variant="ghost"
                     icon={<Trash2 size={14} />}
-                    aria-label="Retirer la zone"
+                    aria-label={t.removeZone}
                     onClick={() =>
                       set((s) => ({ ...s, zones: s.zones.filter((_, j) => j !== i), components: s.components.map((c) => (c.zone === z.id ? { ...c, zone: undefined } : c)) }))
                     }
@@ -168,15 +158,15 @@ export function Sheet({ project }: WorkspaceProps) {
             })}
             <div>
               <Button size="sm" icon={<Plus size={13} />} onClick={() => set((s) => ({ ...s, zones: [...s.zones, { id: nextZoneId(s), network: "private" }] }))}>
-                Ajouter une zone
+                {t.addZone}
               </Button>
             </div>
           </div>
         </Section>
 
         <Section
-          title="Packs de conformité"
-          description="Les référentiels appliqués. En automatique, PcyBox GoLive les choisit d'après le type, les fonctionnalités et les pays."
+          title={t.packs}
+          description={t.packsDesc}
           last
         >
           <label className="mb-3 flex items-center gap-2 text-[13px]">
@@ -186,7 +176,7 @@ export function Sheet({ project }: WorkspaceProps) {
               onChange={(e) => set((s) => ({ ...s, profiles: e.target.checked ? [] : suggested }))}
               className="size-4 accent-[var(--go)]"
             />
-            Sélection automatique (recommandé)
+            {t.autoSelect}
           </label>
           <div className="overflow-hidden rounded-lg border border-line">
             {COMMUNITY_PACKS.map((p) => {
@@ -202,11 +192,11 @@ export function Sheet({ project }: WorkspaceProps) {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-2 text-[13px] font-medium">
-                      {p.name} <span className="font-mono text-[10.5px] font-normal text-fg-3">{p.id}@{p.version}</span>
+                      {(lang === "fr" && p.fr?.name) || p.name} <span className="font-mono text-[10.5px] font-normal text-fg-3">{p.id}@{p.version}</span>
                     </p>
-                    <p className="text-xs text-fg-3">{p.description}</p>
+                    <p className="text-xs text-fg-3">{(lang === "fr" && p.fr?.description) || p.description}</p>
                   </div>
-                  <span className="tnum shrink-0 font-mono text-[11px] text-fg-3">{p.rules.length} règles</span>
+                  <span className="tnum shrink-0 font-mono text-[11px] text-fg-3">{t.rules(p.rules.length)}</span>
                 </label>
               );
             })}

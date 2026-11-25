@@ -4,7 +4,14 @@ export interface Template {
   id: string;
   name: string;
   description: string;
+  /** French name and description. */
+  fr: { name: string; description: string };
   spec: SpecInput;
+}
+
+/** Template name and description in the interface language. */
+export function templateText(t: Template, lang: "en" | "fr" = "en"): { name: string; description: string } {
+  return lang === "fr" ? t.fr : { name: t.name, description: t.description };
 }
 
 const base = { spec: "golive/v1" as const };
@@ -12,22 +19,24 @@ const base = { spec: "golive/v1" as const };
 export const TEMPLATES: Template[] = [
   {
     id: "blank",
-    name: "Projet vierge",
-    description: "Un canevas vide. Vous dessinez tout.",
-    spec: { ...base, project: { name: "Nouveau projet", type: "other", countries: [], audience: "public" } },
+    name: "Blank project",
+    description: "An empty canvas. You draw everything.",
+    fr: { name: "Projet vierge", description: "Un canevas vide. Vous dessinez tout." },
+    spec: { ...base, project: { name: "New project", type: "other", countries: [], audience: "public" } },
   },
   {
     id: "wordpress-showcase",
-    name: "Site vitrine WordPress",
-    description: "WordPress derrière un CDN, MySQL, formulaire de contact.",
+    name: "WordPress showcase site",
+    description: "WordPress behind a CDN, MySQL, contact form.",
+    fr: { name: "Site vitrine WordPress", description: "WordPress derrière un CDN, MySQL, formulaire de contact." },
     spec: {
       ...base,
-      project: { name: "Site vitrine", type: "showcase", countries: ["SN"], languages: ["fr"], audience: "public" },
+      project: { name: "Showcase site", type: "showcase", countries: ["SN"], languages: ["fr"], audience: "public" },
       data: { personal: ["identity", "contact"], sensitive: [] },
       features: ["forms", "analytics"],
       actors: [
         { id: "visitor", kind: "visitor" },
-        { id: "editor", kind: "admin", name: "Éditeurs" },
+        { id: "editor", kind: "admin", name: "Editors" },
       ],
       components: [
         { id: "cdn", kind: "cdn", tech: "cloudflare" },
@@ -50,15 +59,16 @@ export const TEMPLATES: Template[] = [
   {
     id: "ecommerce",
     name: "E-commerce",
-    description: "Boutique Next.js, API, paiement Wave + Stripe, stockage médias.",
+    description: "Next.js shop, API, Wave + Stripe payments, media storage.",
+    fr: { name: "E-commerce", description: "Boutique Next.js, API, paiement Wave + Stripe, stockage médias." },
     spec: {
       ...base,
-      project: { name: "Boutique en ligne", type: "ecommerce", countries: ["SN", "FR"], languages: ["fr"], audience: "public", criticality: "financial" },
+      project: { name: "Online shop", type: "ecommerce", countries: ["SN", "FR"], languages: ["fr"], audience: "public", criticality: "financial" },
       data: { personal: ["identity", "contact", "payment", "location"], sensitive: [] },
       features: ["accounts", "admin", "payment", "newsletter", "email"],
       actors: [
-        { id: "customer", kind: "user", name: "Clients" },
-        { id: "ops", kind: "admin", name: "Équipe boutique" },
+        { id: "customer", kind: "user", name: "Customers" },
+        { id: "ops", kind: "admin", name: "Shop team" },
       ],
       components: [
         { id: "cdn", kind: "cdn", tech: "cloudflare" },
@@ -91,15 +101,16 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "saas-b2b",
-    name: "SaaS B2B",
-    description: "Application multi-tenant, SSO, files de tâches, supervision.",
+    name: "B2B SaaS",
+    description: "Multi-tenant application, SSO, job queues, monitoring.",
+    fr: { name: "SaaS B2B", description: "Application multi-tenant, SSO, files de tâches, supervision." },
     spec: {
       ...base,
-      project: { name: "SaaS B2B", type: "saas", countries: ["FR"], languages: ["fr", "en"], audience: "authenticated" },
+      project: { name: "B2B SaaS", type: "saas", countries: ["FR"], languages: ["fr", "en"], audience: "authenticated" },
       data: { personal: ["identity", "contact", "usage"], sensitive: [] },
       features: ["accounts", "admin", "payment", "uploads", "email", "ai"],
       actors: [
-        { id: "member", kind: "user", name: "Utilisateurs clients" },
+        { id: "member", kind: "user", name: "Customer users" },
         { id: "support", kind: "admin", name: "Support" },
       ],
       components: [
@@ -116,7 +127,7 @@ export const TEMPLATES: Template[] = [
         { id: "bkp", kind: "backup", tech: "pgbackrest" },
         { id: "vault", kind: "secrets", tech: "infisical" },
       ],
-      zones: [{ id: "eu", name: "Cloud UE", provider: "hetzner", country: "DE", network: "private" }],
+      zones: [{ id: "eu", name: "EU cloud", provider: "hetzner", country: "DE", network: "private" }],
       links: [
         { from: "member", to: "lb", protocol: "https" },
         { from: "support", to: "lb", protocol: "https" },
@@ -144,14 +155,15 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "mobile-api",
-    name: "Application mobile + API",
-    description: "App Flutter, API Laravel, notifications, paiement Orange Money.",
+    name: "Mobile app + API",
+    description: "Flutter app, Laravel API, notifications, Orange Money payments.",
+    fr: { name: "Application mobile + API", description: "App Flutter, API Laravel, notifications, paiement Orange Money." },
     spec: {
       ...base,
-      project: { name: "App mobile", type: "mobile-api", countries: ["SN", "CI"], languages: ["fr"], audience: "authenticated" },
+      project: { name: "Mobile app", type: "mobile-api", countries: ["SN", "CI"], languages: ["fr"], audience: "authenticated" },
       data: { personal: ["identity", "contact", "location", "payment"], sensitive: [] },
       features: ["accounts", "payment", "uploads"],
-      actors: [{ id: "user", kind: "user", name: "Utilisateurs" }],
+      actors: [{ id: "user", kind: "user", name: "Users" }],
       components: [
         { id: "app", kind: "mobile", tech: "flutter@3" },
         { id: "api", kind: "api", tech: "laravel@11", runtime: "php@8.2" },
@@ -173,16 +185,17 @@ export const TEMPLATES: Template[] = [
   },
   {
     id: "public-service",
-    name: "Portail de service public",
-    description: "E-services citoyens hébergés au datacenter national.",
+    name: "Public service portal",
+    description: "Citizen e-services hosted in the national data center.",
+    fr: { name: "Portail de service public", description: "E-services citoyens hébergés au datacenter national." },
     spec: {
       ...base,
-      project: { name: "Portail e-services", type: "public-service", countries: ["SN"], languages: ["fr", "wo"], audience: "public", criticality: "public-service" },
+      project: { name: "E-services portal", type: "public-service", countries: ["SN"], languages: ["fr", "wo"], audience: "public", criticality: "public-service" },
       data: { personal: ["identity", "contact"], sensitive: ["national-id"] },
       features: ["accounts", "admin", "forms", "uploads", "email"],
-      zones: [{ id: "dc", name: "Datacenter national", provider: "senum", country: "SN", network: "private" }],
+      zones: [{ id: "dc", name: "National data center", provider: "senum", country: "SN", network: "private" }],
       actors: [
-        { id: "citizen", kind: "visitor", name: "Citoyens" },
+        { id: "citizen", kind: "visitor", name: "Citizens" },
         { id: "agent", kind: "admin", name: "Agents" },
       ],
       components: [

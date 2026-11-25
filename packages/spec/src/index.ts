@@ -67,7 +67,7 @@ export function validateSpec(raw: unknown): ParseResult {
 
   const ids = new Map<string, string>();
   const register = (id: string, path: (string | number)[]) => {
-    if (ids.has(id)) issues.push({ path, message: `identifiant en double : « ${id} »` });
+    if (ids.has(id)) issues.push({ path, message: `duplicate id: "${id}"` });
     ids.set(id, path.join("."));
   };
   spec.components.forEach((c, i) => register(c.id, ["components", i, "id"]));
@@ -76,12 +76,12 @@ export function validateSpec(raw: unknown): ParseResult {
   const zoneIds = new Set(spec.zones.map((z) => z.id));
   spec.components.forEach((c, i) => {
     if (c.zone && !zoneIds.has(c.zone)) {
-      issues.push({ path: ["components", i, "zone"], message: `zone inconnue : « ${c.zone} »` });
+      issues.push({ path: ["components", i, "zone"], message: `unknown zone: "${c.zone}"` });
     }
   });
   spec.links.forEach((l, i) => {
-    if (!ids.has(l.from)) issues.push({ path: ["links", i, "from"], message: `élément inconnu : « ${l.from} »` });
-    if (!ids.has(l.to)) issues.push({ path: ["links", i, "to"], message: `élément inconnu : « ${l.to} »` });
+    if (!ids.has(l.from)) issues.push({ path: ["links", i, "from"], message: `unknown element: "${l.from}"` });
+    if (!ids.has(l.to)) issues.push({ path: ["links", i, "to"], message: `unknown element: "${l.to}"` });
   });
 
   if (issues.length) return { ok: false, issues };
@@ -157,6 +157,6 @@ export function parseTech(tech: string | undefined): { name: string; version?: s
   return { name: tech.slice(0, at).toLowerCase(), version: tech.slice(at + 1) };
 }
 
-export function emptySpec(name = "Nouveau projet"): Spec {
+export function emptySpec(name = "New project"): Spec {
   return specSchema.parse({ spec: SPEC_VERSION, project: { name } });
 }

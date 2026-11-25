@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { TEMPLATES, validateSpec, type Spec } from "@golive/spec";
 import type { Decision, TaskColumn, TaskState } from "@golive/engine";
 import type { WebObservation } from "@golive/packs-sdk";
-import { api, ApiError } from "./api";
+import { api, ApiError, tl } from "./api";
 
 export type Column = TaskColumn;
 export type Task = TaskState;
@@ -231,12 +231,12 @@ export const useStore = create<State>()((set, get) => {
       if (!s) {
         const t = TEMPLATES.find((x) => x.id === (template ?? "blank")) ?? TEMPLATES[0]!;
         const r = validateSpec(structuredClone(t.spec));
-        if (!r.ok) throw new Error("modèle invalide");
+        if (!r.ok) throw new Error(tl("Invalid template.", "Modèle invalide."));
         s = r.spec;
       }
       if (name) s = { ...s, project: { ...s.project, name } };
       const orgId = get().orgId;
-      if (!orgId) throw new Error("Aucune organisation.");
+      if (!orgId) throw new Error(tl("No organization.", "Aucune organisation."));
       const { id } = await api<{ id: string }>(`/orgs/${orgId}/projects`, { body: { spec: s } });
       void get().loadList();
       return id;

@@ -109,7 +109,7 @@ async function follow(start: URL, agent: Agent, opts: ProbeOptions, timeoutMs: n
     }
     return { res, url };
   }
-  throw new Error("Trop de redirections.");
+  throw new Error("Too many redirects.");
 }
 
 async function readCapped(res: Response, max: number) {
@@ -275,10 +275,10 @@ async function checkWellKnown(url: URL, agent: Agent, timeoutMs: number): Promis
 function describeError(e: unknown): string {
   const err = e as Error & { cause?: { code?: string; message?: string; name?: string } };
   if (err.name === "BlockedAddressError") return err.message;
-  if (err.cause?.name === "BlockedAddressError" || /refusée/.test(err.cause?.message ?? "")) return err.cause!.message!;
+  if (err.cause?.name === "BlockedAddressError" || /Address refused/.test(err.cause?.message ?? "")) return err.cause!.message!;
   const code = err.cause?.code;
-  if (code === "ENOTFOUND") return "Nom de domaine introuvable (DNS).";
-  if (code === "ECONNREFUSED") return "Connexion refusée par le serveur.";
-  if (err.name === "TimeoutError" || code === "UND_ERR_CONNECT_TIMEOUT") return "Le serveur n'a pas répondu à temps.";
+  if (code === "ENOTFOUND") return "Domain name not found (DNS).";
+  if (code === "ECONNREFUSED") return "Connection refused by the server.";
+  if (err.name === "TimeoutError" || code === "UND_ERR_CONNECT_TIMEOUT") return "The server did not answer in time.";
   return err.cause?.message ?? err.message;
 }

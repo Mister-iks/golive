@@ -133,7 +133,7 @@ export async function crawl(startUrl: string, options: CrawlOptions = {}): Promi
     obs.blockedRequests = proxy.blocked() + blockedSchemes;
     await context.close();
   } catch (e) {
-    obs.pages.push(failedPage(startUrl, `Navigateur indisponible : ${(e as Error).message.split("\n")[0]}`));
+    obs.pages.push(failedPage(startUrl, `Browser unavailable: ${(e as Error).message.split("\n")[0]}`));
   } finally {
     await browser?.close().catch(() => {});
     await proxy.close();

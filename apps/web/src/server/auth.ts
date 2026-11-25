@@ -5,7 +5,12 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink, twoFactor } from "better-auth/plugins";
 import { accounts, and, eq, gt, invitations, isNull, logActivity, orgMembers, organizations, sessions, sql, twoFactors, users, verifications } from "@golive/db";
 import { db } from "./db";
+import { langOf } from "./i18n";
 import { sendMail } from "./mail";
+
+/** Language of a Better Auth call: the interface cookie, English otherwise. */
+const langOfCtx = (ctx: { request?: Request; headers?: Headers } | null | undefined) =>
+  langOf(ctx?.request ?? (ctx?.headers ? ({ headers: ctx.headers } as Request) : undefined));
 
 export const APP_URL = process.env.GOLIVE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
@@ -24,18 +29,26 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
-    sendResetPassword: async ({ user, url }) => {
-      await sendMail(user.email, "Réinitialiser votre mot de passe PcyBox GoLive", `Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :\n${url}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`);
+    sendResetPassword: async ({ user, url }, request) => {
+      if (langOf(request) === "fr") {
+        await sendMail(user.email, "Réinitialiser votre mot de passe PcyBox GoLive", `Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :\n${url}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`);
+      } else {
+        await sendMail(user.email, "Reset your PcyBox GoLive password", `Hello,\n\nTo choose a new password, open this link (valid for 1 hour):\n${url}\n\nIf you did not ask for this, ignore this message.`);
+      }
     },
   },
   plugins: [
     magicLink({
       expiresIn: 60 * 10,
-      sendMagicLink: async ({ email, url }) => {
+      sendMagicLink: async ({ email, url }, ctx) => {
         // A magic link would bypass the second factor: accounts with 2FA sign in with password and code.
         const [u] = await db().select({ twoFactor: users.twoFactorEnabled }).from(users).where(eq(sql`lower(${users.email})`, email.toLowerCase()));
         if (u?.twoFactor) return;
-        await sendMail(email, "Votre lien de connexion PcyBox GoLive", `Bonjour,\n\nPour vous connecter, ouvrez ce lien (valable 10 minutes) :\n${url}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`);
+        if (langOfCtx(ctx) === "fr") {
+          await sendMail(email, "Votre lien de connexion PcyBox GoLive", `Bonjour,\n\nPour vous connecter, ouvrez ce lien (valable 10 minutes) :\n${url}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`);
+        } else {
+          await sendMail(email, "Your PcyBox GoLive sign-in link", `Hello,\n\nTo sign in, open this link (valid for 10 minutes):\n${url}\n\nIf you did not ask for this, ignore this message.`);
+        }
       },
     }),
     twoFactor({ issuer: "PcyBox GoLive" }),
@@ -44,7 +57,7 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
+        before: async (user, ctx) => {
           // Community: the first account creates the organization, later ones join by invitation.
           const [{ count } = { count: 0 }] = await db().select({ count: sql<number>`count(*)::int` }).from(organizations);
           if (count === 0) return;
@@ -52,7 +65,10 @@ export const auth = betterAuth({
             .select({ id: invitations.id })
             .from(invitations)
             .where(and(eq(sql`lower(${invitations.email})`, user.email.toLowerCase()), isNull(invitations.acceptedAt), isNull(invitations.revokedAt), gt(invitations.expiresAt, new Date())));
-          if (!inv) throw new APIError("FORBIDDEN", { message: "Les inscriptions se font sur invitation." });
+          if (!inv) {
+            const message = langOfCtx(ctx) === "fr" ? "Les inscriptions se font sur invitation." : "Sign-up is by invitation only.";
+            throw new APIError("FORBIDDEN", { message });
+          }
         },
         after: async (user) => {
           // The first account owns the installation's organization. The advisory lock

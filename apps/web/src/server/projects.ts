@@ -14,7 +14,7 @@ import {
   type WebByEnv,
 } from "@golive/db";
 import { loadProject, type Rights } from "./access";
-import { forbidden, HttpError, requireMfa } from "./http";
+import { forbidden, HttpError, L, requireMfa } from "./http";
 
 export interface AuditDto {
   id: string;
@@ -46,7 +46,10 @@ export interface ProjectDto {
 
 export function parseSpec(input: unknown): Spec {
   const r = validateSpec(input);
-  if (!r.ok) throw new HttpError(400, `Spécification invalide : ${r.issues.slice(0, 3).map((i) => i.message).join(" ; ")}`, "invalid_spec");
+  if (!r.ok) {
+    const issues = r.issues.slice(0, 3).map((i) => i.message);
+    throw new HttpError(400, L(`Invalid specification: ${issues.join("; ")}`, `Spécification invalide : ${issues.join(" ; ")}`), "invalid_spec");
+  };
   return r.spec;
 }
 
@@ -94,7 +97,11 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stri
 export async function saveSpec(tx: Tx, user: { id: string; twoFactorEnabled?: boolean | null }, id: string, input: unknown, revision: number) {
   const userId = user.id;
   const { project, rights } = await loadProject(tx, id);
-  if (project.revision !== revision) throw new HttpError(409, "Le projet a été modifié par quelqu'un d'autre. Rechargez pour voir la dernière version.", "conflict");
+  if (project.revision !== revision) throw new HttpError(
+      409,
+      L("Someone else changed the project. Reload to see the latest version.", "Le projet a été modifié par quelqu'un d'autre. Rechargez pour voir la dernière version."),
+      "conflict",
+    );
   const spec = parseSpec(input);
   const prev = project.spec;
 
@@ -102,10 +109,10 @@ export async function saveSpec(tx: Tx, user: { id: string; twoFactorEnabled?: bo
   const evidenceChanged = !same(prev.evidence, spec.evidence);
   const rest = (s: Spec) => ({ ...s, waivers: undefined, evidence: undefined });
   const restChanged = !same(rest(prev), rest(spec));
-  if (waiversChanged && !rights.validate) throw forbidden("Seuls les propriétaires et administrateurs signent ou retirent une dérogation.");
+  if (waiversChanged && !rights.validate) throw forbidden(L("Only owners and administrators sign or remove a waiver.", "Seuls les propriétaires et administrateurs signent ou retirent une dérogation."));
   if (waiversChanged) requireMfa(user);
-  if (evidenceChanged && !rights.contribute) throw forbidden("Votre rôle ne permet pas d'attester une preuve.");
-  if (restChanged && !rights.edit) throw forbidden("Votre rôle ne permet pas de modifier l'architecture.");
+  if (evidenceChanged && !rights.contribute) throw forbidden(L("Your role does not allow attesting a proof.", "Votre rôle ne permet pas d'attester une preuve."));
+  if (restChanged && !rights.edit) throw forbidden(L("Your role does not allow changing the architecture.", "Votre rôle ne permet pas de modifier l'architecture."));
   if (!waiversChanged && !evidenceChanged && !restChanged) return { revision: project.revision, tasks: undefined };
 
   const [saved] = await tx

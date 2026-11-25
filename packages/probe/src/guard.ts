@@ -8,7 +8,7 @@ import { isIP } from "node:net";
  */
 export class BlockedAddressError extends Error {
   constructor(host: string, ip: string) {
-    super(`Adresse refusée pour ${host} (${ip}) : réseau privé ou réservé.`);
+    super(`Address refused for ${host} (${ip}): private or reserved network.`);
     this.name = "BlockedAddressError";
   }
 }
@@ -89,8 +89,8 @@ export function assertUrlAllowed(raw: string, opts: GuardOptions): URL {
   } catch {
     throw new Error(`URL invalide : ${raw}`);
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Seules les URL http et https sont auditées.");
-  if (url.username || url.password) throw new Error("Les identifiants dans l'URL ne sont pas acceptés.");
+  if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Only http and https URLs are audited.");
+  if (url.username || url.password) throw new Error("Credentials in the URL are not accepted.");
   const host = url.hostname.replace(/^\[|\]$/g, "");
   if (!opts.allowPrivate) {
     if (isIP(host) && isBlockedIp(host)) throw new BlockedAddressError(host, host);

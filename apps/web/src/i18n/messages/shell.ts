@@ -1,0 +1,56 @@
+import { defineMessages } from "../index";
+
+export const shellMessages = defineMessages({
+  en: {
+    nav: { projects: "Projects", organization: "Organization", rules: "Rule catalogue" },
+    source: "Source code",
+    sourceOnGithub: "Source code on GitHub",
+    mfaBanner: "Two-factor authentication is mandatory for your role. Without it, invitations, roles and waivers are blocked for you.",
+    mfaEnable: "Turn it on",
+    theme: { group: "Theme", system: "System", light: "Light", dark: "Dark" },
+    orgRoles: { owner: "Owner", admin: "Administrator", member: "Member", guest: "Guest" },
+    noOrg: "No organization yet. Open the invitation link you received by e-mail.",
+    myAccount: "My account",
+    signOut: "Sign out",
+    close: "Close",
+    auth: {
+      footer: "Community edition · open source · self-hosted",
+      kicker: "Go / No-Go",
+      headline: "The green light before any production launch.",
+      sample: [
+        ["ok", "TLS 1.3, certificate valid for 74 days"],
+        ["ko", "PostgreSQL database exposed to the Internet"],
+        ["ok", "No secret in the repository"],
+        ["proof", "Backup restore tested"],
+        ["ko", "Tracker loaded before consent"],
+        ["ok", "20 pages browsed, 0 broken link"],
+      ] as ["ok" | "ko" | "proof", string][],
+    },
+  },
+  fr: {
+    nav: { projects: "Projets", organization: "Organisation", rules: "Catalogue des règles" },
+    source: "Code source",
+    sourceOnGithub: "Code source sur GitHub",
+    mfaBanner: "La double authentification est obligatoire pour votre rôle. Sans elle, invitations, rôles et dérogations vous sont bloqués.",
+    mfaEnable: "L'activer",
+    theme: { group: "Thème", system: "Système", light: "Clair", dark: "Sombre" },
+    orgRoles: { owner: "Propriétaire", admin: "Administrateur", member: "Membre", guest: "Invité" },
+    noOrg: "Aucune organisation. Ouvrez le lien d'invitation reçu par e-mail.",
+    myAccount: "Mon compte",
+    signOut: "Se déconnecter",
+    close: "Fermer",
+    auth: {
+      footer: "Édition Community · open source · auto-hébergée",
+      kicker: "Go / No-Go",
+      headline: "Le feu vert avant toute mise en production.",
+      sample: [
+        ["ok", "TLS 1.3, certificat valide 74 jours"],
+        ["ko", "Base PostgreSQL exposée sur Internet"],
+        ["ok", "Aucun secret dans le dépôt"],
+        ["proof", "Restauration de sauvegarde testée"],
+        ["ko", "Traceur chargé avant consentement"],
+        ["ok", "20 pages parcourues, 0 lien cassé"],
+      ],
+    },
+  },
+});

@@ -198,7 +198,7 @@ export async function lookupVulnerabilities(packages: Pkg[], timeoutMs = 20_000)
       body: JSON.stringify({ queries: chunk.map((p) => ({ package: { name: p.name, ecosystem: p.ecosystem }, version: p.version })) }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) throw new Error(`osv.dev a répondu ${res.status}`);
+    if (!res.ok) throw new Error(`osv.dev answered ${res.status}`);
     const data = (await res.json()) as { results: { vulns?: { id: string }[] }[] };
     data.results.forEach((r, j) => {
       if (r.vulns?.length) hits.push({ pkg: chunk[j]!, ids: r.vulns.map((v) => v.id) });

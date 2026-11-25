@@ -27,7 +27,7 @@ export async function runAudit(database: Database, auditId: string, settings: Au
   try {
     const web = await probe(audit.url, { env: audit.env, allowPrivate: settings.allowPrivate });
     if (!web.ok) {
-      await finish(database, auditId, { status: "failed", error: web.error ?? "Site injoignable.", observation: web });
+      await finish(database, auditId, { status: "failed", error: web.error ?? "Site unreachable.", observation: web });
       return;
     }
 
@@ -50,7 +50,7 @@ export async function runAudit(database: Database, auditId: string, settings: Au
     await progress({ step: "evaluate" });
     await db.transaction(async (tx) => {
       const [project] = await tx.select().from(projects).where(eq(projects.id, audit.projectId)).for("update");
-      if (!project) throw new Error("Projet supprimé pendant l'audit.");
+      if (!project) throw new Error("Project deleted during the audit.");
       const webByEnv = { ...(project.web ?? {}), [audit.env]: web };
       const report = evaluateProject({ spec: project.spec, web: webByEnv });
       await tx.update(projects).set({ web: webByEnv, updatedAt: new Date() }).where(eq(projects.id, project.id));

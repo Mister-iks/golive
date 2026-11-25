@@ -13,7 +13,7 @@ const concurrency = clamp(Number(env.GOLIVE_WORKER_CONCURRENCY ?? 2), 1, 8);
 async function main() {
   if (env.GOLIVE_MIGRATE !== "0") {
     const applied = await migrate();
-    console.log(applied.length ? `[migrate] appliquées : ${applied.join(", ")}` : "[migrate] base à jour");
+    console.log(applied.length ? `[migrate] applied: ${applied.join(", ")}` : "[migrate] database up to date");
   }
   if (process.argv.includes("--migrate-only")) return;
 
@@ -22,21 +22,21 @@ async function main() {
   // Audits left running by a crashed worker are marked failed rather than stuck forever.
   await database.db
     .update(audits)
-    .set({ status: "failed", error: "Interrompu (redémarrage du worker).", finishedAt: new Date() })
+    .set({ status: "failed", error: "Interrupted (worker restarted).", finishedAt: new Date() })
     .where(and(inArray(audits.status, ["running"]), sql`started_at < now() - interval '15 minutes'`));
 
   const boss = await startQueue();
   await boss.work<AuditJob>(AUDIT_QUEUE, { localConcurrency: concurrency }, async ([job]) => {
     if (!job) return;
     const started = Date.now();
-    console.log(`[audit] ${job.data.auditId} démarré`);
+    console.log(`[audit] ${job.data.auditId} started`);
     await runAudit(database, job.data.auditId, settings);
-    console.log(`[audit] ${job.data.auditId} terminé en ${Math.round((Date.now() - started) / 1000)} s`);
+    console.log(`[audit] ${job.data.auditId} finished in ${Math.round((Date.now() - started) / 1000)} s`);
   });
-  console.log(`[worker] prêt · ${concurrency} audit(s) en parallèle · ${settings.maxPages} pages max${settings.allowPrivate ? " · adresses privées autorisées" : ""}`);
+  console.log(`[worker] ready · ${concurrency} parallel audit(s) · ${settings.maxPages} pages max${settings.allowPrivate ? " · private addresses allowed" : ""}`);
 
   const stop = async () => {
-    console.log("[worker] arrêt…");
+    console.log("[worker] stopping…");
     await boss.stop({ graceful: true, timeout: 30_000 });
     await database.close();
     process.exit(0);

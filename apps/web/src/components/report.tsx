@@ -2,17 +2,27 @@
 
 import type { ReactNode } from "react";
 import { FileJson, Printer } from "lucide-react";
-import { CATEGORY_LABELS, COMMUNITY_PACKS } from "@golive/engine";
-import { COUNTRIES, DATA_LABELS, FEATURE_LABELS, PROJECT_TYPE_LABELS } from "@golive/spec";
+import { categoryLabels, COMMUNITY_PACKS } from "@golive/engine";
+import { useCatalog, useLang, useMessages } from "@/i18n/client";
+import { reportMessages } from "@/i18n/messages/report";
 import { download, longDate, slug } from "@/lib/format";
 import { Wordmark } from "./brand";
-import { Button, cx, DECISION_LABEL, SeverityTag, StatusIcon, STATUS_LABEL } from "./ui";
+import { Button, cx, SeverityTag, StatusIcon, useLabels } from "./ui";
 import type { WorkspaceProps } from "./workspace";
 
-const PACK_NAME = Object.fromEntries(COMMUNITY_PACKS.map((p) => [p.id, p.name]));
 const SEV = { blocker: 0, major: 1, minor: 2, info: 3 };
 
 export function ReportView({ project, report }: WorkspaceProps) {
+  const t = useMessages(reportMessages);
+  const { lang } = useLang();
+  const { COUNTRIES, DATA_LABELS, FEATURE_LABELS, PROJECT_TYPE_LABELS } = useCatalog();
+  const L = useLabels();
+  const CATEGORY_LABELS = categoryLabels(lang);
+  const packName = (id: string) => {
+    const p = COMMUNITY_PACKS.find((x) => x.id === id);
+    return p ? (lang === "fr" && p.fr?.name) || p.name : id;
+  };
+  const date = (iso: string) => longDate(iso, lang);
   const spec = project.spec;
   const open = report.results
     .filter((r) => r.status === "fail" || r.status === "evidence" || r.status === "warn")
@@ -28,7 +38,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
           JSON
         </Button>
         <Button size="sm" variant="primary" icon={<Printer size={13} />} onClick={() => window.print()}>
-          Imprimer ou PDF
+          {t.print}
         </Button>
       </div>
 
@@ -36,10 +46,10 @@ export function ReportView({ project, report }: WorkspaceProps) {
         <header className="flex items-start justify-between border-b border-line pb-6">
           <div>
             <Wordmark size="lg" />
-            <p className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-fg-3">Rapport Go / No-Go</p>
+            <p className="mt-5 font-mono text-[10.5px] uppercase tracking-[0.14em] text-fg-3">{t.kicker}</p>
             <h1 className="mt-1 text-[24px] font-semibold tracking-[-0.02em]">{spec.project.name}</h1>
             <p className="mt-1 text-[13px] text-fg-3">
-              {PROJECT_TYPE_LABELS[spec.project.type]} · état au {longDate(report.asOf)}
+              {PROJECT_TYPE_LABELS[spec.project.type]} · {t.asOf(date(report.asOf))}
             </p>
           </div>
           <div className="text-right">
@@ -49,10 +59,10 @@ export function ReportView({ project, report }: WorkspaceProps) {
                 d === "go" ? "text-go" : d === "conditional" ? "text-amber" : "text-red",
               )}
             >
-              {DECISION_LABEL[d].toUpperCase()}
+              {L.decision[d].toUpperCase()}
             </p>
             <p className="tnum mt-2 text-[13px] text-fg-2">
-              Score <strong className="font-semibold text-fg">{report.score.global}</strong>/100 · seuil {report.threshold}
+              Score <strong className="font-semibold text-fg">{report.score.global}</strong>/100 · {t.threshold(report.threshold)}
             </p>
           </div>
         </header>
@@ -76,32 +86,30 @@ export function ReportView({ project, report }: WorkspaceProps) {
           </div>
         </section>
 
-        <Block title="Périmètre">
+        <Block title={t.scope}>
           <dl className="grid grid-cols-[160px_1fr] gap-x-4 gap-y-1.5 text-[13px]">
-            <Dt>Pays de diffusion</Dt>
-            <dd>{spec.project.countries.map((c) => COUNTRIES[c] ?? c).join(", ") || "Non précisé"}</dd>
-            <Dt>Données personnelles</Dt>
-            <dd>{[...spec.data.personal, ...spec.data.sensitive].map((x) => DATA_LABELS[x]).join(", ") || "Aucune déclarée"}</dd>
-            <Dt>Fonctionnalités</Dt>
-            <dd>{spec.features.map((f) => FEATURE_LABELS[f]).join(", ") || "Aucune déclarée"}</dd>
-            <Dt>Architecture</Dt>
+            <Dt>{t.countries}</Dt>
+            <dd>{spec.project.countries.map((c) => COUNTRIES[c] ?? c).join(", ") || t.notSpecified}</dd>
+            <Dt>{t.personalData}</Dt>
+            <dd>{[...spec.data.personal, ...spec.data.sensitive].map((x) => DATA_LABELS[x]).join(", ") || t.noneDeclared}</dd>
+            <Dt>{t.features}</Dt>
+            <dd>{spec.features.map((f) => FEATURE_LABELS[f]).join(", ") || t.noneDeclared}</dd>
+            <Dt>{t.architecture}</Dt>
+            <dd>{t.architectureCount(spec.components.length, spec.links.length, spec.actors.length)}</dd>
+            <Dt>{t.layersChecked}</Dt>
             <dd>
-              {spec.components.length} composants, {spec.links.length} flux, {spec.actors.length} acteurs
-            </dd>
-            <Dt>Couches vérifiées</Dt>
-            <dd>
-              {report.coverage.layers.map((l) => ({ 1: "Architecture", 2: "Code", 3: "Site en ligne", 4: "IA" })[l]).join(", ")}
+              {report.coverage.layers.map((l) => t.layerNames[l]).join(", ")}
               {report.coverage.web && (
                 <span className="text-fg-3">
                   {" "}
-                  (<span className="font-mono text-xs">{report.coverage.web.url}</span>, {report.coverage.web.env === "prod" ? "production" : "pré-production"})
+                  (<span className="font-mono text-xs">{report.coverage.web.url}</span>, {report.coverage.web.env === "prod" ? t.envProd : t.envPreprod})
                 </span>
               )}
             </dd>
           </dl>
         </Block>
 
-        <Block title="Référentiels appliqués">
+        <Block title={t.packs}>
           <table className="w-full text-[12.5px]">
             <tbody>
               {report.packs.map((p) => (
@@ -110,23 +118,23 @@ export function ReportView({ project, report }: WorkspaceProps) {
                   <td className="py-1.5 font-mono text-[11px] text-fg-3">
                     {p.id}@{p.version}
                   </td>
-                  <td className="py-1.5 text-right text-xs text-fg-3">{p.stale ? "Revue juridique à faire" : p.reviewedAt ? `Revu le ${longDate(p.reviewedAt)}` : "Maintenu par PcyBox GoLive"}</td>
+                  <td className="py-1.5 text-right text-xs text-fg-3">{p.stale ? t.legalReviewDue : p.reviewedAt ? t.reviewedOn(date(p.reviewedAt)) : t.maintained}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Block>
 
-        <Block title={`Points ouverts (${open.length})`}>
+        <Block title={t.openItems(open.length)}>
           {open.length === 0 ? (
-            <p className="text-[13px] text-fg-3">Aucun point ouvert.</p>
+            <p className="text-[13px] text-fg-3">{t.noOpenItems}</p>
           ) : (
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className="border-b border-line text-left text-[10.5px] uppercase tracking-[0.06em] text-fg-3">
                   <th className="w-6 py-1.5 font-medium" />
-                  <th className="py-1.5 font-medium">Contrôle</th>
-                  <th className="w-[84px] py-1.5 font-medium">Sévérité</th>
+                  <th className="py-1.5 font-medium">{t.check}</th>
+                  <th className="w-[84px] py-1.5 font-medium">{t.severity}</th>
                 </tr>
               </thead>
               <tbody>
@@ -138,11 +146,11 @@ export function ReportView({ project, report }: WorkspaceProps) {
                     <td className="py-2 pr-4">
                       <p className="font-medium">
                         {r.title}
-                        {r.waiver && <span className="ml-1.5 text-xs font-normal text-amber">(dérogation)</span>}
+                        {r.waiver && <span className="ml-1.5 text-xs font-normal text-amber">{t.waiverTag}</span>}
                       </p>
                       <p className="text-fg-2">{r.findings.filter((f) => f.status !== "pass").map((f) => f.message).join(" ")}</p>
                       <p className="mt-0.5 font-mono text-[10.5px] text-fg-3">
-                        {r.ruleId} · {PACK_NAME[r.packId]} · {r.source.label}
+                        {r.ruleId} · {packName(r.packId)} · {r.source.label}
                       </p>
                     </td>
                     <td className="py-2">
@@ -156,14 +164,13 @@ export function ReportView({ project, report }: WorkspaceProps) {
         </Block>
 
         {attested.length > 0 && (
-          <Block title={`Preuves fournies (${attested.length})`}>
+          <Block title={t.proofs(attested.length)}>
             <ul className="flex flex-col gap-1.5 text-[12.5px]">
               {attested.map((r) => (
                 <li key={r.ruleId} className="break-avoid">
                   <span className="font-medium">{r.title}</span>
                   <span className="text-fg-2">
-                    {" "}
-                    : attesté par {r.attested!.by} le {longDate(r.attested!.date)}
+                    {t.attestedBy(r.attested!.by, date(r.attested!.date))}
                     {r.attested!.note ? `. ${r.attested!.note}` : ""}
                   </span>
                   {r.attested!.url && <span className="block font-mono text-[10.5px] text-fg-3">{r.attested!.url}</span>}
@@ -174,22 +181,24 @@ export function ReportView({ project, report }: WorkspaceProps) {
         )}
 
         {waived.length > 0 && (
-          <Block title={`Dérogations (${waived.length})`}>
+          <Block title={t.waivers(waived.length)}>
             <ul className="flex flex-col gap-2 text-[12.5px]">
               {waived.map((r) => (
                 <li key={r.ruleId} className="break-avoid rounded-md border border-amber-line bg-amber-soft/60 px-3 py-2">
                   <p className="font-medium">{r.title}</p>
                   <p className="text-fg-2">
-                    {r.waiver!.reason} Signée par {r.waiver!.owner}, valable jusqu'au {longDate(r.waiver!.expires)}.
+                    {r.waiver!.reason} {t.signedBy(r.waiver!.owner, date(r.waiver!.expires))}
                   </p>
-                  {r.waiver!.plan && <p className="text-fg-3">Plan : {r.waiver!.plan}</p>}
+                  {r.waiver!.plan && <p className="text-fg-3">
+                      {t.plan} {r.waiver!.plan}
+                    </p>}
                 </li>
               ))}
             </ul>
           </Block>
         )}
 
-        <Block title="Annexe : tous les contrôles">
+        <Block title={t.appendix}>
           <table className="w-full text-[11.5px]">
             <tbody>
               {report.results
@@ -201,7 +210,7 @@ export function ReportView({ project, report }: WorkspaceProps) {
                     </td>
                     <td className="py-1">{r.title}</td>
                     <td className="py-1 font-mono text-[10px] text-fg-3">{r.ruleId}</td>
-                    <td className="py-1 text-right text-fg-3">{STATUS_LABEL[r.status]}</td>
+                    <td className="py-1 text-right text-fg-3">{L.status[r.status]}</td>
                   </tr>
                 ))}
             </tbody>
@@ -210,13 +219,10 @@ export function ReportView({ project, report }: WorkspaceProps) {
 
         <footer className="mt-8 border-t border-line pt-4 text-[11px] leading-relaxed text-fg-3">
           <p>
-            Empreinte <span className="font-mono text-fg-2">{report.fingerprint}</span> · moteur PcyBox GoLive {report.engine} · date de référence {report.asOf}. Les mêmes
-            entrées (golive.yaml, versions des packs, état du site) redonnent toujours ce verdict.
+            {t.fingerprint} <span className="font-mono text-fg-2">{report.fingerprint}</span>
+            {t.engineLine(report.engine, report.asOf)}
           </p>
-          <p className="mt-2">
-            Rapport local non signé, édition Community. Il atteste d'un contrôle à une date donnée et ne constitue ni une garantie de sécurité, ni un avis juridique.
-            Les exigences légales signalées sont à valider par un juriste.
-          </p>
+          <p className="mt-2">{t.disclaimer}</p>
         </footer>
       </article>
     </div>

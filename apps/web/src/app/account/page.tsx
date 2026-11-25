@@ -6,13 +6,15 @@ import { Check, Copy, Download, ShieldCheck, ShieldAlert } from "lucide-react";
 import { PageHeader, Shell } from "@/components/shell";
 import { Button, Dialog, Field, Input } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { useMessages } from "@/i18n/client";
+import { accountMessages } from "@/i18n/messages/account";
 import { useStore } from "@/lib/store";
 import { useMe } from "@/lib/use-report";
 
 export default function AccountPage() {
   return (
     <Shell>
-      <PageHeader title="Mon compte" />
+      <AccountHeader />
       <div className="flex-1 overflow-auto">
         <div className="mx-auto flex max-w-[720px] flex-col gap-6 px-6 py-6">
           <TwoFactor />
@@ -22,6 +24,10 @@ export default function AccountPage() {
       </div>
     </Shell>
   );
+}
+
+function AccountHeader() {
+  return <PageHeader title={useMessages(accountMessages).title} />;
 }
 
 function Card({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
@@ -37,8 +43,8 @@ function Card({ title, aside, children }: { title: string; aside?: ReactNode; ch
 }
 
 const notify = (text: string, tone: "error" | "info" = "error") => useStore.getState().notify(text, tone);
-const errText = (e: { message?: string; status?: number } | null | undefined, fallback: string) =>
-  e?.status === 401 || /password/i.test(e?.message ?? "") ? "Mot de passe incorrect." : e?.message || fallback;
+const errText = (wrong: string, e: { message?: string; status?: number } | null | undefined, fallback: string) =>
+  e?.status === 401 || /password/i.test(e?.message ?? "") ? wrong : e?.message || fallback;
 
 /* ------------------------------------------------------------ two-factor */
 
@@ -47,6 +53,8 @@ type Step = { kind: "idle" } | { kind: "password"; action: "enable" | "disable" 
 function TwoFactor() {
   const { me } = useMe();
   const [step, setStep] = useState<Step>({ kind: "idle" });
+  const m = useMessages(accountMessages);
+  const t = m.mfa;
   const enabled = !!me?.user.twoFactorEnabled;
 
   const done = async () => {
@@ -56,14 +64,14 @@ function TwoFactor() {
 
   return (
     <Card
-      title="Double authentification"
+      title={t.title}
       aside={
         enabled ? (
           <span className="flex items-center gap-1 rounded-full border border-go-line bg-go-soft px-2 py-0.5 text-[11px] text-go">
-            <ShieldCheck size={12} /> Activée
+            <ShieldCheck size={12} /> {t.on}
           </span>
         ) : (
-          <span className="rounded-full border border-line-strong px-2 py-0.5 text-[11px] text-fg-3">Désactivée</span>
+          <span className="rounded-full border border-line-strong px-2 py-0.5 text-[11px] text-fg-3">{t.off}</span>
         )
       }
     >
@@ -71,24 +79,23 @@ function TwoFactor() {
         {me?.mfaRequired && (
           <p className="flex items-start gap-2 rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-[13px] text-amber">
             <ShieldAlert size={15} className="mt-0.5 shrink-0" />
-            Obligatoire pour votre rôle : sans elle, vous ne pouvez ni inviter, ni changer les rôles, ni signer de dérogation.
+            {t.required}
           </p>
         )}
         <p className="text-[13px] leading-relaxed text-fg-2">
-          À chaque connexion, PcyBox GoLive demande en plus de votre mot de passe un code à 6 chiffres généré par une application d'authentification (Google Authenticator,
-          Microsoft Authenticator, 1Password, Bitwarden…). Un mot de passe volé ne suffit plus.
+          {t.intro}
         </p>
         <div className="flex gap-2">
           {enabled ? (
             <>
-              <Button onClick={() => setStep({ kind: "password", action: "codes" })}>Nouveaux codes de secours</Button>
+              <Button onClick={() => setStep({ kind: "password", action: "codes" })}>{t.newCodes}</Button>
               <Button variant="danger" onClick={() => setStep({ kind: "password", action: "disable" })}>
-                Désactiver
+                {t.disable}
               </Button>
             </>
           ) : (
             <Button variant="primary" icon={<ShieldCheck size={14} />} onClick={() => setStep({ kind: "password", action: "enable" })}>
-              Activer la double authentification
+              {t.enable}
             </Button>
           )}
         </div>
@@ -100,28 +107,28 @@ function TwoFactor() {
         onConfirmed={async (password, action) => {
           if (action === "enable") {
             const { data, error } = await authClient.twoFactor.enable({ password });
-            if (error || !data || !("totpURI" in data)) throw new Error(errText(error, "Activation impossible."));
+            if (error || !data || !("totpURI" in data)) throw new Error(errText(m.wrongPassword, error, t.enableFailed));
             setStep({ kind: "scan", uri: data.totpURI, codes: data.backupCodes });
           } else if (action === "disable") {
             const { error } = await authClient.twoFactor.disable({ password });
-            if (error) throw new Error(errText(error, "Désactivation impossible."));
-            notify("Double authentification désactivée.", "info");
+            if (error) throw new Error(errText(m.wrongPassword, error, t.disableFailed));
+            notify(t.disabled, "info");
             await done();
           } else {
             const { data, error } = await authClient.twoFactor.generateBackupCodes({ password });
-            if (error || !data) throw new Error(errText(error, "Génération impossible."));
+            if (error || !data) throw new Error(errText(m.wrongPassword, error, t.codesFailed));
             setStep({ kind: "codes", codes: data.backupCodes });
           }
         }}
       />
       {step.kind === "scan" && <ScanDialog uri={step.uri} codes={step.codes} onCancel={() => setStep({ kind: "idle" })} onDone={done} />}
       {step.kind === "codes" && (
-        <Dialog open onOpenChange={() => setStep({ kind: "idle" })} title="Nouveaux codes de secours" description="Les anciens codes ne fonctionnent plus.">
+        <Dialog open onOpenChange={() => setStep({ kind: "idle" })} title={t.newCodes} description={t.newCodesDesc}>
           <div className="p-5">
             <BackupCodes codes={step.codes} />
             <div className="mt-4 flex justify-end">
               <Button variant="primary" onClick={() => setStep({ kind: "idle" })}>
-                Je les ai enregistrés
+                {t.savedThem}
               </Button>
             </div>
           </div>
@@ -136,6 +143,7 @@ function PasswordDialog({ step, onCancel, onConfirmed }: { step: Step; onCancel:
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const open = step.kind === "password";
+  const t = useMessages(accountMessages).mfa;
   return (
     <Dialog
       open={open}
@@ -146,8 +154,8 @@ function PasswordDialog({ step, onCancel, onConfirmed }: { step: Step; onCancel:
           onCancel();
         }
       }}
-      title="Confirmez votre mot de passe"
-      description="Par sécurité, cette action demande votre mot de passe."
+      title={t.confirmTitle}
+      description={t.confirmDesc}
       width={420}
     >
       <form
@@ -167,14 +175,14 @@ function PasswordDialog({ step, onCancel, onConfirmed }: { step: Step; onCancel:
           }
         }}
       >
-        <Input type="password" autoComplete="current-password" autoFocus required value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Mot de passe" />
+        <Input type="password" autoComplete="current-password" autoFocus required value={password} onChange={(e) => setPassword(e.target.value)} aria-label={t.password} />
         {error && <p className="text-[13px] text-red">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={onCancel}>
-            Annuler
+            {t.cancel}
           </Button>
           <Button type="submit" variant="primary" disabled={busy || !password}>
-            Continuer
+            {t.continue}
           </Button>
         </div>
       </form>
@@ -187,11 +195,12 @@ function ScanDialog({ uri, codes, onCancel, onDone }: { uri: string; codes: stri
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [saved, setSaved] = useState(false);
+  const t = useMessages(accountMessages).mfa;
   const secret = new URL(uri).searchParams.get("secret") ?? "";
   const svg = renderSVG(uri, { border: 1, pixelSize: 5, whiteColor: "#ffffff", blackColor: "#0e0f11" });
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onCancel()} title="Activer la double authentification" description="Trois étapes, une minute." width={620}>
+    <Dialog open onOpenChange={(o) => !o && onCancel()} title={t.setupTitle} description={t.setupDesc} width={620}>
       <form
         className="flex flex-col gap-5 p-5"
         onSubmit={async (e) => {
@@ -200,28 +209,28 @@ function ScanDialog({ uri, codes, onCancel, onDone }: { uri: string; codes: stri
           setError(undefined);
           const { error } = await authClient.twoFactor.verifyTotp({ code: code.replace(/\s/g, "") });
           setBusy(false);
-          if (error) return setError("Code incorrect. Vérifiez l'heure de votre téléphone et réessayez avec le code suivant.");
-          notify("Double authentification activée.", "info");
+          if (error) return setError(t.badCode);
+          notify(t.enabled, "info");
           await onDone();
         }}
       >
-        <Stepper n={1} title="Scannez ce QR code avec votre application d'authentification">
+        <Stepper n={1} title={t.step1}>
           <div className="flex items-start gap-4">
             <div className="shrink-0 overflow-hidden rounded-md border border-line bg-white p-1" dangerouslySetInnerHTML={{ __html: svg }} style={{ width: 168 }} />
             <div className="min-w-0 text-xs text-fg-3">
-              <p>Impossible de scanner ? Saisissez cette clé dans l'application :</p>
+              <p>{t.cantScan}</p>
               <p className="mt-1.5 break-all rounded-md border border-line bg-surface-2 px-2 py-1.5 font-mono text-[12px] text-fg">{secret.replace(/(.{4})/g, "$1 ").trim()}</p>
             </div>
           </div>
         </Stepper>
-        <Stepper n={2} title="Gardez vos codes de secours en lieu sûr">
-          <p className="mb-2 text-xs text-fg-3">Chacun remplace une fois l'application si vous perdez votre téléphone.</p>
+        <Stepper n={2} title={t.step2}>
+          <p className="mb-2 text-xs text-fg-3">{t.step2Hint}</p>
           <BackupCodes codes={codes} onSaved={() => setSaved(true)} />
           <label className="mt-2 flex items-center gap-2 text-[13px]">
-            <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> J'ai enregistré mes codes de secours
+            <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} /> {t.savedCheckbox}
           </label>
         </Stepper>
-        <Stepper n={3} title="Saisissez le code affiché par l'application">
+        <Stepper n={3} title={t.step3}>
           <div className="flex gap-2">
             <Input
               mono
@@ -232,10 +241,10 @@ function ScanDialog({ uri, codes, onCancel, onDone }: { uri: string; codes: stri
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="max-w-[160px] text-center tracking-[0.2em]"
-              aria-label="Code à 6 chiffres"
+              aria-label={t.codeLabel}
             />
             <Button type="submit" variant="primary" disabled={busy || !saved || code.replace(/\s/g, "").length !== 6}>
-              Activer
+              {t.activate}
             </Button>
           </div>
           {error && <p className="mt-2 text-[13px] text-red">{error}</p>}
@@ -259,6 +268,7 @@ function Stepper({ n, title, children }: { n: number; title: string; children: R
 
 function BackupCodes({ codes, onSaved }: { codes: string[]; onSaved?: () => void }) {
   const [copied, setCopied] = useState(false);
+  const t = useMessages(accountMessages).mfa;
   const text = codes.join("\n");
   return (
     <div className="rounded-md border border-line bg-surface-2 p-3">
@@ -278,7 +288,7 @@ function BackupCodes({ codes, onSaved }: { codes: string[]; onSaved?: () => void
             onSaved?.();
           }}
         >
-          {copied ? "Copiés" : "Copier"}
+          {copied ? t.copied : t.copy}
         </Button>
         <Button
           type="button"
@@ -286,14 +296,14 @@ function BackupCodes({ codes, onSaved }: { codes: string[]; onSaved?: () => void
           icon={<Download size={13} />}
           onClick={() => {
             const a = document.createElement("a");
-            a.href = URL.createObjectURL(new Blob([`Codes de secours PcyBox GoLive\n\n${text}\n`], { type: "text/plain" }));
-            a.download = "pcybox-golive-codes-de-secours.txt";
+            a.href = URL.createObjectURL(new Blob([`${t.fileTitle}\n\n${text}\n`], { type: "text/plain" }));
+            a.download = t.fileName;
             a.click();
             URL.revokeObjectURL(a.href);
             onSaved?.();
           }}
         >
-          Télécharger
+          {t.download}
         </Button>
       </div>
     </div>
@@ -305,27 +315,28 @@ function BackupCodes({ codes, onSaved }: { codes: string[]; onSaved?: () => void
 function Profile() {
   const { me } = useMe();
   const [name, setName] = useState(me?.user.name ?? "");
+  const t = useMessages(accountMessages).profile;
   if (!me) return null;
   return (
-    <Card title="Profil">
+    <Card title={t.title}>
       <form
         className="flex items-end gap-2 p-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const { error } = await authClient.updateUser({ name: name.trim() });
-          if (error) return notify(error.message ?? "Enregistrement impossible.");
+          if (error) return notify(error.message ?? t.failed);
           await useStore.getState().loadMe();
-          notify("Profil enregistré.", "info");
+          notify(t.saved, "info");
         }}
       >
-        <Field label="Nom" className="flex-1">
+        <Field label={t.name} className="flex-1">
           <Input required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label="E-mail" className="flex-1">
+        <Field label={t.email} className="flex-1">
           <Input value={me.user.email} readOnly disabled />
         </Field>
         <Button type="submit" variant="primary" disabled={!name.trim() || name === me.user.name}>
-          Enregistrer
+          {t.save}
         </Button>
       </form>
     </Card>
@@ -335,9 +346,11 @@ function Profile() {
 function Password() {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
+  const m = useMessages(accountMessages);
+  const t = m.password;
   const [busy, setBusy] = useState(false);
   return (
-    <Card title="Mot de passe">
+    <Card title={t.title}>
       <form
         className="flex flex-col gap-3 p-4"
         onSubmit={async (e) => {
@@ -345,23 +358,23 @@ function Password() {
           setBusy(true);
           const { error } = await authClient.changePassword({ currentPassword: current, newPassword: next, revokeOtherSessions: true });
           setBusy(false);
-          if (error) return notify(errText(error, "Changement impossible."));
+          if (error) return notify(errText(m.wrongPassword, error, t.failed));
           setCurrent("");
           setNext("");
-          notify("Mot de passe changé. Vos autres sessions ont été déconnectées.", "info");
+          notify(t.changed, "info");
         }}
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Mot de passe actuel">
+          <Field label={t.current}>
             <Input type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
           </Field>
-          <Field label="Nouveau mot de passe" hint="10 caractères minimum.">
+          <Field label={t.next} hint={t.hint}>
             <Input type="password" autoComplete="new-password" required minLength={10} value={next} onChange={(e) => setNext(e.target.value)} />
           </Field>
         </div>
         <div>
           <Button type="submit" variant="primary" disabled={busy || !current || next.length < 10}>
-            Changer le mot de passe
+            {t.change}
           </Button>
         </div>
       </form>

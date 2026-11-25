@@ -38,6 +38,7 @@ PcyBox GoLive turns them into **versioned, deterministic rules** that run agains
 | **Report** | Printable Go / No-Go report (PDF) and JSON export. |
 | **Repository scan** | Committed secrets, vulnerable dependencies (OSV database, npm, PyPI, Go, Packagist, RubyGems, crates.io), Dockerfiles running as root, datastores published by compose. Uses Gitleaks too when installed. |
 | **CLI** | `golive check --repo .` in your CI. Exits non-zero on No-Go. |
+| **Languages** | English by default, French with one click (EN / FR switch) or `--lang fr` in the CLI. Rules, findings, reports and e-mails follow. |
 
 ## Quick start
 
@@ -174,7 +175,7 @@ Rule of thumb: everything needed to **verify** stays open; what saves a **team**
 ## Roadmap
 
 - **Now**: Studio, spec, engine, 7 packs, repository scan, multi-page audit robot, teams and invitations on PostgreSQL, CLI, report.
-- **Next**: passkeys, Lighthouse scores, English UI, Helm chart, public GitHub Action release.
+- **Next**: passkeys, Lighthouse scores, Helm chart, public GitHub Action release, more interface languages.
 - **Later**: Premium copilot, signed reports and badge, Gov edition.
 
 ## Contributing

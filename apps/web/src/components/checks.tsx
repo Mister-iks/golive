@@ -2,32 +2,39 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight, ExternalLink, Scale, ShieldCheck, Undo2 } from "lucide-react";
-import { CATEGORY_LABELS, COMMUNITY_PACKS, type RuleResult } from "@golive/engine";
+import { categoryLabels, COMMUNITY_PACKS, type RuleResult } from "@golive/engine";
 import type { Category, Status } from "@golive/packs-sdk";
 import type { Spec } from "@golive/spec";
 import { useStore } from "@/lib/store";
 import { longDate } from "@/lib/format";
 import { today } from "@/lib/use-report";
-import { Button, cx, Dialog, Empty, Field, Input, SeverityTag, StatusIcon, STATUS_LABEL, Textarea } from "./ui";
+import { useLang, useMessages } from "@/i18n/client";
+import { checksMessages } from "@/i18n/messages/checks";
+import { Button, cx, Dialog, Empty, Field, Input, SeverityTag, StatusIcon, Textarea, useLabels } from "./ui";
 import { AuditPanel } from "./audit-panel";
 import type { WorkspaceProps } from "./workspace";
 
 type Filter = "open" | "blocking" | "evidence" | "pass" | "not-run" | "all";
 
-const FILTERS: { id: Filter; label: string; test: (r: RuleResult) => boolean }[] = [
-  { id: "open", label: "À traiter", test: (r) => r.status === "fail" || r.status === "evidence" || r.status === "warn" },
-  { id: "blocking", label: "Bloquants", test: (r) => r.blocking },
-  { id: "evidence", label: "Preuves requises", test: (r) => r.status === "evidence" },
-  { id: "pass", label: "Réussis", test: (r) => r.status === "pass" },
-  { id: "not-run", label: "Non exécutés", test: (r) => r.status === "not-run" },
-  { id: "all", label: "Toutes les règles", test: (r) => r.status !== "na" },
+const FILTERS: { id: Filter; test: (r: RuleResult) => boolean }[] = [
+  { id: "open", test: (r) => r.status === "fail" || r.status === "evidence" || r.status === "warn" },
+  { id: "blocking", test: (r) => r.blocking },
+  { id: "evidence", test: (r) => r.status === "evidence" },
+  { id: "pass", test: (r) => r.status === "pass" },
+  { id: "not-run", test: (r) => r.status === "not-run" },
+  { id: "all", test: (r) => r.status !== "na" },
 ];
 
 const STATUS_ORDER: Status[] = ["fail", "evidence", "warn", "not-run", "pass", "na"];
 const SEV_ORDER = { blocker: 0, major: 1, minor: 2, info: 3 };
-const PACK_NAME = Object.fromEntries(COMMUNITY_PACKS.map((p) => [p.id, p.name]));
+const packName = (id: string, lang: string) => {
+  const p = COMMUNITY_PACKS.find((x) => x.id === id);
+  return p ? (lang === "fr" && p.fr?.name) || p.name : id;
+};
 
 export function Checks({ project, report }: WorkspaceProps) {
+  const t = useMessages(checksMessages);
+  const { lang } = useLang();
   const [filter, setFilter] = useState<Filter>("open");
   const [category, setCategory] = useState<Category | "all">("all");
   const [open, setOpen] = useState<string | null>(null);
@@ -56,26 +63,26 @@ export function Checks({ project, report }: WorkspaceProps) {
       <AuditPanel project={project} report={report} />
       <div className="flex min-h-0 flex-1">
         <aside className="w-[220px] shrink-0 overflow-y-auto border-r border-line bg-surface px-2 py-3 max-md:hidden">
-          <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">Statut</p>
+          <p className="px-2 pb-1 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">{t.status}</p>
           {FILTERS.map((f) => (
             <FilterItem key={f.id} active={filter === f.id} onClick={() => setFilter(f.id)} count={report.results.filter(f.test).length}>
-              {f.label}
+              {t.filters[f.id]}
             </FilterItem>
           ))}
-          <p className="px-2 pb-1 pt-5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">Catégorie</p>
+          <p className="px-2 pb-1 pt-5 text-[10.5px] font-medium uppercase tracking-[0.08em] text-fg-3">{t.category}</p>
           <FilterItem active={category === "all"} onClick={() => setCategory("all")}>
-            Toutes
+            {t.allCategories}
           </FilterItem>
           {categories.map((c) => (
             <FilterItem key={c} active={category === c} onClick={() => setCategory(c)} count={report.score.byCategory[c]} countSuffix="">
-              {CATEGORY_LABELS[c]}
+              {categoryLabels(lang)[c]}
             </FilterItem>
           ))}
         </aside>
         <div className="min-w-0 flex-1 overflow-y-auto">
           {rows.length === 0 ? (
-            <Empty icon={<ShieldCheck size={16} />} title={filter === "open" ? "Rien à traiter" : "Aucune règle ici"}>
-              {filter === "open" ? "Tous les contrôles applicables sont au vert." : "Changez de filtre pour voir d'autres règles."}
+            <Empty icon={<ShieldCheck size={16} />} title={filter === "open" ? t.nothingOpen : t.noRules}>
+              {filter === "open" ? t.allGreen : t.changeFilter}
             </Empty>
           ) : (
             <ul className="divide-y divide-line">
@@ -110,6 +117,9 @@ function FilterItem({ active, onClick, count, countSuffix, children }: { active:
 /* ------------------------------------------------------------- Rule row */
 
 function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: WorkspaceProps["project"]; expanded: boolean; onToggle: () => void }) {
+  const t = useMessages(checksMessages);
+  const { lang } = useLang();
+  const labels = useLabels();
   const update = useStore((s) => s.update);
   const [dialog, setDialog] = useState<"attest" | "waive" | null>(null);
   const set = (fn: (s: Spec) => Spec) => update(project.id, fn);
@@ -122,8 +132,8 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-[13px] font-medium">
             <span className="truncate">{r.title}</span>
-            {r.waiver && <span className="shrink-0 rounded border border-amber-line px-1 font-mono text-[9.5px] uppercase text-amber">dérogation</span>}
-            {r.attested && <span className="shrink-0 rounded border border-go-line px-1 font-mono text-[9.5px] uppercase text-go">attesté</span>}
+            {r.waiver && <span className="shrink-0 rounded border border-amber-line px-1 font-mono text-[9.5px] uppercase text-amber">{t.waiverTag}</span>}
+            {r.attested && <span className="shrink-0 rounded border border-go-line px-1 font-mono text-[9.5px] uppercase text-go">{t.attestedTag}</span>}
           </p>
           <p className="truncate text-xs text-fg-3">{visible[0]?.message ?? r.why}</p>
         </div>
@@ -150,17 +160,17 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
 
           <div className="mt-4 grid max-w-3xl gap-4 sm:grid-cols-[1fr_220px]">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-fg-3">Correction</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-fg-3">{t.fix}</p>
               <p className="mt-1 text-[13px] leading-relaxed">{r.fix}</p>
             </div>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-              <dt className="text-fg-3">Pack</dt>
-              <dd>{PACK_NAME[r.packId]}</dd>
-              <dt className="text-fg-3">Couche</dt>
+              <dt className="text-fg-3">{t.pack}</dt>
+              <dd>{packName(r.packId, lang)}</dd>
+              <dt className="text-fg-3">{t.layer}</dt>
               <dd>{r.layer}</dd>
-              <dt className="text-fg-3">Statut</dt>
-              <dd>{STATUS_LABEL[r.status]}</dd>
-              <dt className="text-fg-3">Source</dt>
+              <dt className="text-fg-3">{t.status}</dt>
+              <dd>{labels.status[r.status]}</dd>
+              <dt className="text-fg-3">{t.source}</dt>
               <dd>
                 {r.source.url ? (
                   <a href={r.source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline decoration-line-strong underline-offset-2 hover:decoration-fg">
@@ -176,26 +186,28 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
 
           {r.legal && (
             <p className="mt-4 flex max-w-3xl items-center gap-2 text-xs text-fg-3">
-              <Scale size={13} /> Exigence légale signalée par PcyBox GoLive, à valider par un juriste. PcyBox GoLive ne délivre pas d'avis juridique.
+              <Scale size={13} /> {t.legal}
             </p>
           )}
 
           {r.attested && (
             <p className="mt-4 max-w-3xl text-xs text-fg-2">
-              Attesté par <strong className="font-medium">{r.attested.by}</strong> le {longDate(r.attested.date)}
+              {t.attestedBy} <strong className="font-medium">{r.attested.by}</strong> {t.on} {longDate(r.attested.date, lang)}
               {r.attested.note ? ` : ${r.attested.note}` : "."}
             </p>
           )}
           {r.waiver && (
             <p className="mt-4 max-w-3xl text-xs text-fg-2">
-              Dérogation signée par <strong className="font-medium">{r.waiver.owner}</strong> jusqu'au {longDate(r.waiver.expires)} : {r.waiver.reason}
+              {t.waiverSignedBy} <strong className="font-medium">{r.waiver.owner}</strong> {t.until} {longDate(r.waiver.expires, lang)}
+              {lang === "fr" ? " : " : ": "}
+              {r.waiver.reason}
             </p>
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
             {r.status === "evidence" && !r.attested && (
               <Button size="sm" variant="primary" icon={<ShieldCheck size={13} />} onClick={() => setDialog("attest")}>
-                Attester
+                {t.attest}
               </Button>
             )}
             {r.attested && (
@@ -209,17 +221,17 @@ function RuleRow({ r, project, expanded, onToggle }: { r: RuleResult; project: W
                   })
                 }
               >
-                Retirer l'attestation
+                {t.removeAttestation}
               </Button>
             )}
             {(r.blocking || r.waiver) && !r.waiver && (
               <Button size="sm" icon={<Scale size={13} />} onClick={() => setDialog("waive")}>
-                Déroger
+                {t.waive}
               </Button>
             )}
             {r.waiver && (
               <Button size="sm" icon={<Undo2 size={13} />} onClick={() => set((s) => ({ ...s, waivers: s.waivers.filter((w) => w.rule !== r.ruleId) }))}>
-                Lever la dérogation
+                {t.liftWaiver}
               </Button>
             )}
           </div>
@@ -253,8 +265,9 @@ function AttestDialog({ open, onClose, r, onSave }: { open: boolean; onClose: ()
   const [date, setDate] = useState(today());
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const t = useMessages(checksMessages);
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title="Attester ce contrôle" description={r.title} width={500}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={t.attestTitle} description={r.title} width={500}>
       <form
         className="flex flex-col gap-3.5 p-5"
         onSubmit={(e) => {
@@ -266,25 +279,25 @@ function AttestDialog({ open, onClose, r, onSave }: { open: boolean; onClose: ()
           {r.findings.find((f) => f.status === "evidence")?.message ?? r.why}
         </p>
         <div className="grid grid-cols-[1fr_150px] gap-3">
-          <Field label="Attesté par">
-            <Input required autoFocus value={by} onChange={(e) => setBy(e.target.value)} placeholder="Nom et fonction" />
+          <Field label={t.attestedByField}>
+            <Input required autoFocus value={by} onChange={(e) => setBy(e.target.value)} placeholder={t.namePlaceholder} />
           </Field>
-          <Field label="Date">
+          <Field label={t.date}>
             <Input required type="date" value={date} onChange={(e) => setDate(e.target.value)} max={today()} />
           </Field>
         </div>
-        <Field label="Lien vers la preuve" hint="Document, ticket, capture… L'attestation est enregistrée dans le golive.yaml.">
+        <Field label={t.proofLink} hint={t.proofHint}>
           <Input mono value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" />
         </Field>
-        <Field label="Commentaire">
+        <Field label={t.comment}>
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         <div className="mt-1 flex justify-end gap-2">
           <Button type="button" onClick={onClose}>
-            Annuler
+            {t.cancel}
           </Button>
           <Button type="submit" variant="primary" disabled={!by.trim()}>
-            Enregistrer l'attestation
+            {t.saveAttestation}
           </Button>
         </div>
       </form>
@@ -298,8 +311,9 @@ function WaiveDialog({ open, onClose, r, onSave }: { open: boolean; onClose: () 
   const [expires, setExpires] = useState(in30);
   const [reason, setReason] = useState("");
   const [plan, setPlan] = useState("");
+  const t = useMessages(checksMessages);
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title="Signer une dérogation" description={r.title} width={520}>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={t.waiveTitle} description={r.title} width={520}>
       <form
         className="flex flex-col gap-3.5 p-5"
         onSubmit={(e) => {
@@ -308,28 +322,28 @@ function WaiveDialog({ open, onClose, r, onSave }: { open: boolean; onClose: () 
         }}
       >
         <p className="rounded-md border border-amber-line bg-amber-soft px-3 py-2 text-xs leading-relaxed text-amber">
-          Une dérogation transforme ce bloquant en Go conditionnel jusqu'à sa date d'échéance. Elle est nominative et visible dans le rapport.
+          {t.waiveNotice}
         </p>
         <div className="grid grid-cols-[1fr_150px] gap-3">
-          <Field label="Signataire">
-            <Input required autoFocus value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Nom et fonction" />
+          <Field label={t.signer}>
+            <Input required autoFocus value={owner} onChange={(e) => setOwner(e.target.value)} placeholder={t.namePlaceholder} />
           </Field>
-          <Field label="Échéance">
+          <Field label={t.expires}>
             <Input required type="date" value={expires} min={today()} onChange={(e) => setExpires(e.target.value)} />
           </Field>
         </div>
-        <Field label="Motif">
-          <Textarea required value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Pourquoi mettre en ligne malgré ce bloquant ?" />
+        <Field label={t.reason}>
+          <Textarea required value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t.reasonPlaceholder} />
         </Field>
-        <Field label="Plan de correction">
-          <Textarea value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="Qui corrige, comment, quand." />
+        <Field label={t.plan}>
+          <Textarea value={plan} onChange={(e) => setPlan(e.target.value)} placeholder={t.planPlaceholder} />
         </Field>
         <div className="mt-1 flex justify-end gap-2">
           <Button type="button" onClick={onClose}>
-            Annuler
+            {t.cancel}
           </Button>
           <Button type="submit" variant="primary" disabled={!owner.trim() || !reason.trim()}>
-            Signer la dérogation
+            {t.signWaiver}
           </Button>
         </div>
       </form>

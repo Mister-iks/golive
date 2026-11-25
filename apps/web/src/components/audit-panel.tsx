@@ -8,17 +8,14 @@ import { api, ApiError } from "@/lib/api";
 import { ago } from "@/lib/format";
 import { useStore, type Audit, type Project } from "@/lib/store";
 import { useMe } from "@/lib/use-report";
-import { Button, cx, DECISION_LABEL, Input, Popover, Select, Tip } from "./ui";
+import { useLang, useMessages } from "@/i18n/client";
+import { auditMessages } from "@/i18n/messages/audit";
+import { Button, cx, Input, labels, Popover, Select, Tip, useLabels } from "./ui";
 
 type Env = "prod" | "preprod";
 
-const STEP: Record<string, string> = {
-  probe: "Analyse passive de la page d'accueil",
-  crawl: "Parcours du site dans un vrai navigateur",
-  evaluate: "Calcul du verdict",
-};
-
 export function AuditPanel({ project, report }: { project: Project; report: Report }) {
+  const t = useMessages(auditMessages);
   const { me } = useMe();
   const update = useStore((s) => s.update);
   const startAudit = useStore((s) => s.startAudit);
@@ -55,21 +52,21 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
   };
 
   const layers: { n: number; label: string; state: "on" | "off" | "cli" | "premium"; hint: string }[] = [
-    { n: 1, label: "Architecture déclarée", state: "on", hint: "Évaluée en continu depuis le Studio et la fiche." },
-    { n: 2, label: "Code et infrastructure", state: "cli", hint: "Secrets, dépendances vulnérables et conteneurs : lancez golive check --repo . dans votre CI." },
+    { n: 1, label: t.layers[1].label, state: "on", hint: t.layers[1].hint },
+    { n: 2, label: t.layers[2].label, state: "cli", hint: t.layers[2].hint },
     {
       n: 3,
-      label: "Site en ligne",
+      label: t.layers[3].label,
       state: report.coverage.layers.includes(3) ? "on" : "off",
-      hint: web?.crawl ? `Audit complet : ${web.crawl.pages.length} pages parcourues.` : web ? "Audit rapide de la page d'accueil. Lancez un audit complet pour parcourir le site." : "Pas encore audité.",
+      hint: web?.crawl ? t.fullAuditHint(web.crawl.pages.length) : web ? t.quickAuditHint : t.notAudited,
     },
-    { n: 4, label: "Analyse IA", state: "premium", hint: "Disponible dans l'édition Premium." },
+    { n: 4, label: t.layers[4].label, state: "premium", hint: t.layers[4].hint },
   ];
 
   return (
     <div className="shrink-0 border-b border-line bg-surface">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3">
-        <ol className="flex items-center gap-1" aria-label="Couches de vérification">
+        <ol className="flex items-center gap-1" aria-label={t.layerCoverage}>
           {layers.map((l) => (
             <Tip key={l.n} label={l.hint} side="bottom">
               <li
@@ -96,29 +93,29 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
           }}
         >
           <div className="w-[124px] shrink-0">
-            <Select value={env} onChange={(e) => setEnv(e.target.value as Env)} aria-label="Environnement">
-              <option value="prod">Production</option>
-              <option value="preprod">Pré-prod</option>
+            <Select value={env} onChange={(e) => setEnv(e.target.value as Env)} aria-label={t.environment}>
+              <option value="prod">{t.production}</option>
+              <option value="preprod">{t.preprod}</option>
             </Select>
           </div>
           <Input
             mono
             type="url"
             required
-            placeholder="https://exemple.sn"
+            placeholder="https://example.com"
             value={url}
             disabled={!project.rights.edit}
             onChange={(e) => setUrl(e.target.value.trim())}
-            aria-label={`URL de ${env === "prod" ? "production" : "pré-production"}`}
+            aria-label={t.urlOf(env === "prod")}
           />
-          <Tip label="Page d'accueil seulement, quelques secondes. Aucune vérification du domaine requise.">
+          <Tip label={t.quickHint}>
             <Button type="button" icon={<Radar size={14} />} disabled={!url || !canRun || !!running} onClick={() => void run("quick")}>
-              Rapide
+              {t.quick}
             </Button>
           </Tip>
-          <Tip label={`Parcourt jusqu'à ${me?.settings.maxPages ?? 20} pages dans un vrai navigateur : accessibilité, liens, performances, traceurs.`}>
+          <Tip label={t.fullHint(me?.settings.maxPages ?? 20)}>
             <Button type="submit" variant="primary" icon={<ScanSearch size={14} />} disabled={!url || !canRun || !!running}>
-              Audit complet
+              {t.full}
             </Button>
           </Tip>
           <AuditHistory audits={project.audits} />
@@ -135,7 +132,7 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
           </span>
           {error.host && (
             <Link href={`/settings?tab=domains&host=${encodeURIComponent(error.host)}`} className="shrink-0 font-medium underline underline-offset-2">
-              Vérifier le domaine
+              {t.verifyDomain}
             </Link>
           )}
         </div>
@@ -147,6 +144,7 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
 }
 
 function RunningAudit({ audit }: { audit: Audit }) {
+  const t = useMessages(auditMessages);
   const p = audit.progress;
   const pct = audit.status === "queued" ? 4 : p.step === "probe" ? 10 : p.step === "crawl" && p.maxPages ? 12 + Math.round(((p.pages ?? 0) / p.maxPages) * 80) : p.step === "evaluate" ? 96 : 8;
   return (
@@ -157,12 +155,8 @@ function RunningAudit({ audit }: { audit: Audit }) {
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-go opacity-60" />
             <span className="relative inline-flex size-2 rounded-full bg-go" />
           </span>
-          {audit.status === "queued" ? "En file d'attente…" : STEP[p.step ?? ""] ?? "Audit en cours…"}
-          {p.step === "crawl" && p.maxPages ? (
-            <span className="tnum font-mono text-fg-3">
-              {p.pages ?? 0}/{p.maxPages} pages
-            </span>
-          ) : null}
+          {audit.status === "queued" ? t.queued : t.steps[p.step ?? ""] ?? t.running}
+          {p.step === "crawl" && p.maxPages ? <span className="tnum font-mono text-fg-3">{t.pages(p.pages ?? 0, p.maxPages)}</span> : null}
         </span>
         <span className="truncate font-mono text-fg-3">{audit.url}</span>
       </div>
@@ -174,6 +168,8 @@ function RunningAudit({ audit }: { audit: Audit }) {
 }
 
 function LastAudit({ project }: { project: Project }) {
+  const t = useMessages(auditMessages);
+  const { lang } = useLang();
   const web = project.web!;
   const clearWeb = useStore((s) => s.clearWeb);
   const notify = useStore((s) => s.notify);
@@ -181,14 +177,14 @@ function LastAudit({ project }: { project: Project }) {
   return (
     <div className="flex items-center justify-between gap-4 border-t border-line px-5 py-2 text-xs text-fg-3">
       <span className="truncate">
-        {crawl ? "Audit complet" : "Audit rapide"} de <span className="font-mono text-fg-2">{web.finalUrl}</span> · {web.env === "prod" ? "production" : "pré-production"} ·{" "}
-        {ago(web.fetchedAt)} · HTTP {web.status}
-        {crawl ? ` · ${crawl.pages.length} pages en ${Math.round(crawl.durationMs / 1000)} s` : ` · ${web.timing.totalMs} ms`}
-        {crawl?.truncated ? " · limite de pages atteinte" : ""}
+        {crawl ? t.lastFull : t.lastQuick} {t.of} <span className="font-mono text-fg-2">{web.finalUrl}</span> · {web.env === "prod" ? t.envProd : t.envPreprod} ·{" "}
+        {ago(web.fetchedAt, lang)} · HTTP {web.status}
+        {crawl ? ` · ${t.crawled(crawl.pages.length, Math.round(crawl.durationMs / 1000))}` : ` · ${web.timing.totalMs} ms`}
+        {crawl?.truncated ? ` · ${t.pageLimit}` : ""}
       </span>
       {project.rights.contribute && (
         <button onClick={() => clearWeb(project.id, web.env).catch((e: Error) => notify(e.message))} className="shrink-0 hover:text-fg">
-          Effacer l'audit
+          {t.clear}
         </button>
       )}
     </div>
@@ -196,29 +192,32 @@ function LastAudit({ project }: { project: Project }) {
 }
 
 function AuditHistory({ audits }: { audits: Audit[] }) {
+  const t = useMessages(auditMessages);
+  const { lang } = useLang();
+  const decision = useLabels().decision as Record<string, string>;
   const done = audits.filter((a) => a.status === "done" || a.status === "failed");
   if (!done.length) return null;
   return (
     <Popover
       width={380}
       trigger={
-        <Button type="button" variant="ghost" icon={<History size={14} />} aria-label="Historique des audits">
-          <span className="sr-only">Historique</span>
+        <Button type="button" variant="ghost" icon={<History size={14} />} aria-label={t.history}>
+          <span className="sr-only">{t.historyShort}</span>
         </Button>
       }
     >
-      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-fg-3">Derniers audits</p>
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.06em] text-fg-3">{t.recent}</p>
       <ul className="flex flex-col gap-1.5">
         {done.slice(0, 10).map((a) => (
           <li key={a.id} className="flex items-center gap-2 text-xs">
             <span className={cx("w-[86px] shrink-0 font-medium", a.status === "failed" ? "text-red" : a.verdict === "go" ? "text-go" : a.verdict === "conditional" ? "text-amber" : "text-red")}>
-              {a.status === "failed" ? "Échec" : `${DECISION_LABEL[a.verdict as keyof typeof DECISION_LABEL] ?? a.verdict} · ${a.score}`}
+              {a.status === "failed" ? t.failed : `${decision[a.verdict ?? ""] ?? a.verdict} · ${a.score}`}
             </span>
-            <span className="w-[54px] shrink-0 text-fg-3">{a.kind === "full" ? "complet" : "rapide"}</span>
+            <span className="w-[54px] shrink-0 text-fg-3">{a.kind === "full" ? t.kindFull : t.kindQuick}</span>
             <span className="min-w-0 flex-1 truncate font-mono text-fg-2" title={a.error ?? a.url}>
               {a.status === "failed" ? a.error : a.url}
             </span>
-            <span className="shrink-0 text-fg-4">{ago(a.createdAt)}</span>
+            <span className="shrink-0 text-fg-4">{ago(a.createdAt, lang)}</span>
           </li>
         ))}
       </ul>
@@ -228,6 +227,7 @@ function AuditHistory({ audits }: { audits: Audit[] }) {
 
 /** Follows a running audit, then reloads the project with its new observation and tasks. */
 function useAuditPolling(projectId: string, running: Audit | undefined) {
+  const { lang } = useLang();
   useEffect(() => {
     if (!running) return;
     let alive = true;
@@ -241,7 +241,9 @@ function useAuditPolling(projectId: string, running: Audit | undefined) {
         if (p) useStore.setState({ projects: { ...st.projects, [projectId]: { ...p, audits: p.audits.map((x) => (x.id === a.id ? a : x)) } } });
         if (a.status === "done" || a.status === "failed") {
           await st.loadProject(projectId);
-          st.notify(a.status === "done" ? `Audit terminé : ${DECISION_LABEL[a.verdict as keyof typeof DECISION_LABEL] ?? a.verdict}, score ${a.score}.` : `Audit en échec : ${a.error}`, a.status === "done" ? "info" : "error");
+          const t = auditMessages[lang];
+          const decision = labels(lang).decision as Record<string, string>;
+          st.notify(a.status === "done" ? t.done(decision[a.verdict ?? ""] ?? a.verdict ?? "", a.score) : t.doneFailed(a.error), a.status === "done" ? "info" : "error");
           return;
         }
       } catch {}

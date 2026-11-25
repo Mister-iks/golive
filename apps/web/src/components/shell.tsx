@@ -9,18 +9,21 @@ import { Wordmark } from "./brand";
 import { OrgSwitcher, Toast, UserMenu } from "./account";
 import { LangSwitch } from "./lang-switch";
 import { useTheme, type ThemePref } from "./providers";
+import { useMessages } from "@/i18n/client";
+import { shellMessages } from "@/i18n/messages/shell";
 import { useMe } from "@/lib/use-report";
 import { cx, Tip } from "./ui";
 
 const NAV = [
-  { href: "/", label: "Projets", icon: FolderKanban, match: (p: string) => p === "/" || p.startsWith("/p/") },
-  { href: "/settings", label: "Organisation", icon: Users, match: (p: string) => p.startsWith("/settings") },
-  { href: "/rules", label: "Catalogue des règles", icon: BookOpenText, match: (p: string) => p.startsWith("/rules") },
-];
+  { href: "/", key: "projects", icon: FolderKanban, match: (p: string) => p === "/" || p.startsWith("/p/") },
+  { href: "/settings", key: "organization", icon: Users, match: (p: string) => p.startsWith("/settings") },
+  { href: "/rules", key: "rules", icon: BookOpenText, match: (p: string) => p.startsWith("/rules") },
+] as const;
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { me } = useMe();
+  const t = useMessages(shellMessages);
   return (
     <div className="flex h-dvh overflow-hidden">
       <aside className="no-print flex w-[216px] shrink-0 flex-col border-r border-line bg-surface-2 max-md:hidden">
@@ -34,7 +37,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <OrgSwitcher />
         </div>
         <nav className="flex flex-col gap-px px-2 py-2">
-          {NAV.map(({ href, label, icon: Icon, match }) => {
+          {NAV.map(({ href, key, icon: Icon, match }) => {
             const active = match(path);
             return (
               <Link
@@ -46,7 +49,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 )}
               >
                 <Icon size={15} strokeWidth={1.75} className={active ? "text-fg" : "text-fg-3"} />
-                {label}
+                {t.nav[key]}
               </Link>
             );
           })}
@@ -58,8 +61,8 @@ export function Shell({ children }: { children: ReactNode }) {
             <span>
               Community <span className="font-mono">{ENGINE_VERSION}</span>
             </span>
-            <Tip label="Code source">
-              <a href="https://github.com/Mister-iks/golive" target="_blank" rel="noreferrer" className="hover:text-fg" aria-label="Code source sur GitHub">
+            <Tip label={t.source}>
+              <a href="https://github.com/Mister-iks/golive" target="_blank" rel="noreferrer" className="hover:text-fg" aria-label={t.sourceOnGithub}>
                 <GithubIcon />
               </a>
             </Tip>
@@ -69,9 +72,9 @@ export function Shell({ children }: { children: ReactNode }) {
       <main className="print-root flex min-w-0 flex-1 flex-col overflow-hidden">
         {me?.mfaRequired && path !== "/account" && (
           <div className="no-print flex shrink-0 items-center justify-between gap-4 border-b border-amber-line bg-amber-soft px-5 py-2 text-[13px] text-amber">
-            <span>La double authentification est obligatoire pour votre rôle. Sans elle, invitations, rôles et dérogations vous sont bloqués.</span>
+            <span>{t.mfaBanner}</span>
             <Link href="/account" className="shrink-0 font-medium underline underline-offset-2">
-              L'activer
+              {t.mfaEnable}
             </Link>
           </div>
         )}
@@ -84,13 +87,14 @@ export function Shell({ children }: { children: ReactNode }) {
 
 function ThemeSwitch() {
   const { pref, set } = useTheme();
+  const t = useMessages(shellMessages).theme;
   const opts: { v: ThemePref; icon: typeof Sun; label: string }[] = [
-    { v: "system", icon: Laptop, label: "Système" },
-    { v: "light", icon: Sun, label: "Clair" },
-    { v: "dark", icon: Moon, label: "Sombre" },
+    { v: "system", icon: Laptop, label: t.system },
+    { v: "light", icon: Sun, label: t.light },
+    { v: "dark", icon: Moon, label: t.dark },
   ];
   return (
-    <div role="radiogroup" aria-label="Thème" className="grid grid-cols-3 rounded-md border border-line bg-surface p-0.5">
+    <div role="radiogroup" aria-label={t.group} className="grid grid-cols-3 rounded-md border border-line bg-surface p-0.5">
       {opts.map(({ v, icon: Icon, label }) => (
         <button
           key={v}

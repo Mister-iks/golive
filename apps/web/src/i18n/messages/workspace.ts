@@ -1,0 +1,36 @@
+import { defineMessages } from "../index";
+
+export const workspaceMessages = defineMessages({
+  en: {
+    tabs: { studio: "Studio", sheet: "Project sheet", checks: "Checks", tasks: "Tasks", report: "Report", spec: "golive.yaml" },
+    notFound: "Project not found",
+    backToProjects: "Back to projects",
+    projects: "Projects",
+    contribution: "Contribution",
+    readOnly: "Read only",
+    saving: "Saving…",
+    saved: "Saved",
+    export: "Export",
+    jsonReport: "JSON report",
+    sections: "Project sections",
+    shortcut: "Shortcut",
+    projectName: "Project name",
+    rename: "Rename",
+  },
+  fr: {
+    tabs: { studio: "Studio", sheet: "Fiche projet", checks: "Contrôles", tasks: "Tâches", report: "Rapport", spec: "golive.yaml" },
+    notFound: "Projet introuvable",
+    backToProjects: "Retour aux projets",
+    projects: "Projets",
+    contribution: "Contribution",
+    readOnly: "Lecture seule",
+    saving: "Enregistrement…",
+    saved: "Enregistré",
+    export: "Exporter",
+    jsonReport: "Rapport JSON",
+    sections: "Sections du projet",
+    shortcut: "Raccourci",
+    projectName: "Nom du projet",
+    rename: "Renommer",
+  },
+});

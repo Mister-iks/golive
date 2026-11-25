@@ -53,7 +53,7 @@ describe("GoLive Spec", () => {
   it("rejects links to unknown elements", () => {
     const r = parseSpec("spec: golive/v1\nproject: { name: X }\nlinks:\n  - { from: a, to: b }\n");
     expect(r.ok).toBe(false);
-    expect(r.issues.map((i) => i.message).join()).toMatch(/inconnu/);
+    expect(r.issues.map((i) => i.message).join()).toMatch(/unknown/);
   });
 });
 
@@ -183,7 +183,7 @@ describe("engine", () => {
       });
       const r = evaluate(load("saas-b2b"), { asOf: AS_OF, repo }).results.find((x) => x.ruleId === "core.drift.published-datastore")!;
       expect(r.status).toBe("fail");
-      expect(r.findings[0]?.message).toContain("déclare pourtant privée");
+      expect(r.findings[0]?.message).toContain("declares it private");
     });
 
     it("layer 2 rules are not-run without a scan, and dependency scanning asks for proof", () => {
@@ -272,7 +272,30 @@ describe("layer 3, full audit", () => {
     expect(run(c, "sec.web.mixed-content").status).toBe("fail");
     const axe = run(c, "a11y.axe");
     expect(axe.status).toBe("fail");
-    expect(JSON.stringify(axe)).toContain("7 éléments sur 1 page");
+    expect(JSON.stringify(axe)).toContain("7 elements on 1 page");
     expect(run(c, "eu.cookies.consent").status).toBe("fail");
+  });
+});
+
+describe("languages", () => {
+  it("translates texts without changing the outcome", () => {
+    const spec = load("mobile-api");
+    const en = evaluate(spec, { asOf: AS_OF });
+    const fr = evaluate(spec, { asOf: AS_OF, lang: "fr" });
+    expect(en.lang).toBe("en");
+    expect(fr.lang).toBe("fr");
+    expect(fr.fingerprint).toBe(en.fingerprint);
+    expect(fr.verdict.decision).toBe(en.verdict.decision);
+    expect(fr.score).toEqual(en.score);
+    expect(fr.results.map((r) => [r.ruleId, r.status, r.severity])).toEqual(en.results.map((r) => [r.ruleId, r.status, r.severity]));
+    const backup = (r: typeof en) => r.results.find((x) => x.ruleId === "core.arch.backup")!;
+    expect(backup(en).title).not.toBe(backup(fr).title);
+    expect(fr.verdict.reasons[0]).toMatch(/bloquant/);
+    expect(en.verdict.reasons[0]).toMatch(/blocking/);
+  });
+
+  it("has a French translation for every community rule", () => {
+    const missing = COMMUNITY_PACKS.flatMap((p) => [...(p.fr?.name ? [] : [`pack ${p.id}`]), ...p.rules.filter((r) => !r.fr?.title || !r.fr?.why || !r.fr?.fix).map((r) => r.id)]);
+    expect(missing).toEqual([]);
   });
 });

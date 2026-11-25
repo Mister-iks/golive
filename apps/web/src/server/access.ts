@@ -1,5 +1,5 @@
 import { eq, projects, sql, type OrgRole, type ProjectRole, type Tx } from "@golive/db";
-import { forbidden, notFound } from "./http";
+import { forbidden, L, notFound } from "./http";
 
 export interface Rights {
   role: ProjectRole;
@@ -36,17 +36,17 @@ export async function loadProject(tx: Tx, id: string) {
     })
     .from(projects)
     .where(eq(projects.id, id));
-  if (!row || !row.role) throw notFound("Projet introuvable ou accès retiré.");
+  if (!row || !row.role) throw notFound(L("Project not found or access removed.", "Projet introuvable ou accès retiré."));
   return { project: row.project, rights: rightsFor(row.role, row.orgRole) };
 }
 
 export async function orgRole(tx: Tx, orgId: string): Promise<OrgRole> {
   const r = await tx.execute<{ role: OrgRole | null }>(sql`select golive.org_role(${orgId}) as role`);
   const role = r[0]?.role;
-  if (!role) throw notFound("Organisation introuvable.");
+  if (!role) throw notFound(L("Organization not found.", "Organisation introuvable."));
   return role;
 }
 
 export function requireOrgAdmin(role: OrgRole) {
-  if (role !== "owner" && role !== "admin") throw forbidden("Réservé aux propriétaires et administrateurs de l'organisation.");
+  if (role !== "owner" && role !== "admin") throw forbidden(L("Only organization owners and administrators can do this.", "Réservé aux propriétaires et administrateurs de l'organisation."));
 }

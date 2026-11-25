@@ -18,20 +18,20 @@ const PLACEHOLDER = /^(x+|\*+|\.+|changeme|change-me|password|passwd|secret|exam
  * by construction, so a match is worth blocking a release.
  */
 const PATTERNS: Pattern[] = [
-  { rule: "private-key", description: "Clé privée", re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/ },
-  { rule: "aws-access-key", description: "Clé d'accès AWS", re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },
-  { rule: "github-token", description: "Jeton GitHub", re: /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/ },
-  { rule: "gitlab-token", description: "Jeton GitLab", re: /\bglpat-[A-Za-z0-9_-]{20,}\b/ },
-  { rule: "stripe-live-key", description: "Clé Stripe de production", re: /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/ },
-  { rule: "slack-token", description: "Jeton Slack", re: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/ },
-  { rule: "slack-webhook", description: "Webhook Slack", re: /https:\/\/hooks\.slack\.com\/services\/T[A-Za-z0-9]+\/B[A-Za-z0-9]+\/[A-Za-z0-9]{20,}/ },
-  { rule: "google-api-key", description: "Clé d'API Google", re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
-  { rule: "anthropic-key", description: "Clé d'API Anthropic", re: /\bsk-ant-[A-Za-z0-9_-]{40,}\b/ },
-  { rule: "openai-key", description: "Clé d'API OpenAI", re: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20}T3BlbkFJ[A-Za-z0-9_-]{20,}\b/ },
-  { rule: "sendgrid-key", description: "Clé SendGrid", re: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/ },
+  { rule: "private-key", description: "Private key", re: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED |PGP )?PRIVATE KEY(?: BLOCK)?-----/ },
+  { rule: "aws-access-key", description: "AWS access key", re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },
+  { rule: "github-token", description: "GitHub token", re: /\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{60,})\b/ },
+  { rule: "gitlab-token", description: "GitLab token", re: /\bglpat-[A-Za-z0-9_-]{20,}\b/ },
+  { rule: "stripe-live-key", description: "Stripe live key", re: /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/ },
+  { rule: "slack-token", description: "Slack token", re: /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/ },
+  { rule: "slack-webhook", description: "Slack webhook", re: /https:\/\/hooks\.slack\.com\/services\/T[A-Za-z0-9]+\/B[A-Za-z0-9]+\/[A-Za-z0-9]{20,}/ },
+  { rule: "google-api-key", description: "Google API key", re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
+  { rule: "anthropic-key", description: "Anthropic API key", re: /\bsk-ant-[A-Za-z0-9_-]{40,}\b/ },
+  { rule: "openai-key", description: "OpenAI API key", re: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20}T3BlbkFJ[A-Za-z0-9_-]{20,}\b/ },
+  { rule: "sendgrid-key", description: "SendGrid key", re: /\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/ },
   {
     rule: "database-url-password",
-    description: "URL de base de données avec mot de passe",
+    description: "Database URL with a password",
     re: /\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?):\/\/[^:\s/@"'`]+:([^@\s"'`]{4,})@[^\s"'`]+/,
     accept: (m) => !PLACEHOLDER.test(m[1] ?? "") && !/[$<{%]/.test(m[1] ?? ""),
   },
@@ -67,7 +67,7 @@ export function scanSecrets(root: string, files: string[], tracked: Set<string>)
 
     const env = isEnvFile(file);
     if (env && tracked.has(file)) {
-      out.push({ file, line: 1, rule: "env-file-committed", description: "Fichier d'environnement versionné dans le dépôt" });
+      out.push({ file, line: 1, rule: "env-file-committed", description: "Environment file committed to the repository" });
     }
 
     const lines = text.split(/\r?\n/);
@@ -83,7 +83,7 @@ export function scanSecrets(root: string, files: string[], tracked: Set<string>)
       if (env) {
         const m = ENV_KEY.exec(line);
         if (m && !PLACEHOLDER.test(m[2] ?? "") && (m[2]?.length ?? 0) >= 8) {
-          out.push({ file, line: i + 1, rule: "env-secret", description: `Valeur de ${m[1]} en clair` });
+          out.push({ file, line: i + 1, rule: "env-secret", description: `Plain-text value of ${m[1]}` });
         }
       }
     });

@@ -6,9 +6,12 @@ import { LogOut, X } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useStore } from "@/lib/store";
 import { useMe } from "@/lib/use-report";
+import { useMessages } from "@/i18n/client";
+import { shellMessages } from "@/i18n/messages/shell";
 import { cx } from "./ui";
 
-export const ORG_ROLE_LABEL = { owner: "Propriétaire", admin: "Administrateur", member: "Membre", guest: "Invité" } as const;
+/** Organization role names in the current language. */
+export const useOrgRoleLabels = () => useMessages(shellMessages).orgRoles;
 
 function Initial({ name, className }: { name: string; className?: string }) {
   return (
@@ -21,11 +24,12 @@ function Initial({ name, className }: { name: string; className?: string }) {
 /** Community runs one organization per installation. */
 export function OrgSwitcher() {
   const { me, org } = useMe();
+  const t = useMessages(shellMessages);
   if (!me) return <div className="h-[42px] rounded-md border border-line bg-surface" />;
   if (!org) {
     return (
       <div className="rounded-md border border-dashed border-line px-2.5 py-1.5 text-[11px] leading-snug text-fg-3">
-        Aucune organisation. Ouvrez le lien d'invitation reçu par e-mail.
+        {t.noOrg}
       </div>
     );
   }
@@ -34,7 +38,7 @@ export function OrgSwitcher() {
       <Initial name={org.name} />
       <div className="min-w-0 flex-1 leading-tight">
         <p className="truncate text-xs font-medium">{org.name}</p>
-        <p className="text-[10.5px] text-fg-3">{ORG_ROLE_LABEL[org.role]}</p>
+        <p className="text-[10.5px] text-fg-3">{t.orgRoles[org.role]}</p>
       </div>
     </Link>
   );
@@ -42,6 +46,7 @@ export function OrgSwitcher() {
 
 export function UserMenu() {
   const { me } = useMe();
+  const t = useMessages(shellMessages);
   if (!me) return null;
   return (
     <div className="flex items-center gap-2 px-1">
@@ -52,7 +57,7 @@ export function UserMenu() {
           .map((w) => w[0])
           .join("")}
       </span>
-      <Link href="/account" className="min-w-0 flex-1 rounded leading-tight hover:opacity-80" title="Mon compte">
+      <Link href="/account" className="min-w-0 flex-1 rounded leading-tight hover:opacity-80" title={t.myAccount}>
         <p className="truncate text-xs font-medium">{me.user.name}</p>
         <p className="truncate text-[10.5px] text-fg-3">{me.user.email}</p>
       </Link>
@@ -62,8 +67,8 @@ export function UserMenu() {
           location.assign("/login");
         }}
         className="grid size-7 place-items-center rounded-md text-fg-3 hover:bg-sunken hover:text-fg"
-        aria-label="Se déconnecter"
-        title="Se déconnecter"
+        aria-label={t.signOut}
+        title={t.signOut}
       >
         <LogOut size={14} />
       </button>
@@ -72,6 +77,7 @@ export function UserMenu() {
 }
 
 export function Toast() {
+  const t = useMessages(shellMessages);
   const notice = useStore((s) => s.notice);
   const [shown, setShown] = useState<typeof notice>();
   useEffect(() => {
@@ -91,7 +97,7 @@ export function Toast() {
       >
         <span className={cx("mt-1.5 size-1.5 shrink-0 rounded-full", shown.tone === "error" ? "bg-red" : "bg-go")} />
         <span className="flex-1">{shown.text}</span>
-        <button onClick={() => setShown(undefined)} className="text-fg-3 hover:text-fg" aria-label="Fermer">
+        <button onClick={() => setShown(undefined)} className="text-fg-3 hover:text-fg" aria-label={t.close}>
           <X size={14} />
         </button>
       </div>

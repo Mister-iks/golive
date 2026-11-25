@@ -18,6 +18,8 @@ import "@xyflow/react/dist/base.css";
 import { ENCRYPTED_PROTOCOLS } from "@golive/spec";
 import { buildGraph } from "@golive/packs-sdk";
 import { findingsByTarget } from "@golive/engine";
+import { useMessages } from "@/i18n/client";
+import { studioMessages } from "@/i18n/messages/studio";
 import { useStore } from "@/lib/store";
 import type { WorkspaceProps } from "../workspace";
 import { Inspector } from "./inspector";
@@ -36,6 +38,7 @@ export function Studio(props: WorkspaceProps) {
 }
 
 function StudioInner({ project, report, go }: WorkspaceProps) {
+  const t = useMessages(studioMessages);
   const update = useStore((s) => s.update);
   const { spec } = project;
   const rf = useReactFlow();
@@ -227,20 +230,20 @@ function StudioInner({ project, report, go }: WorkspaceProps) {
         {empty ? (
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <div className="max-w-xs text-center">
-              <p className="text-[13px] font-medium">Canevas vide</p>
-              <p className="mt-1 text-[13px] text-fg-3">Glissez des composants depuis la bibliothèque, puis reliez-les en tirant depuis leurs bords.</p>
+              <p className="text-[13px] font-medium">{t.emptyTitle}</p>
+              <p className="mt-1 text-[13px] text-fg-3">{t.emptyBody}</p>
             </div>
           </div>
         ) : (
           <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2">
             <div className="tnum flex items-center gap-3 whitespace-nowrap rounded-full border border-line bg-surface/90 px-3 py-1 text-[11.5px] text-fg-2 backdrop-blur">
-              <span>{spec.components.length} composants</span>
+              <span>{t.components(spec.components.length)}</span>
               <span className="text-fg-4">·</span>
-              <span>{spec.links.length} flux</span>
+              <span>{t.flows(spec.links.length)}</span>
               {blockersOnCanvas > 0 && (
                 <>
                   <span className="text-fg-4">·</span>
-                  <span className="font-medium text-red">{blockersOnCanvas} bloquant{blockersOnCanvas > 1 ? "s" : ""} sur le schéma</span>
+                  <span className="font-medium text-red">{t.blockersOnCanvas(blockersOnCanvas)}</span>
                 </>
               )}
             </div>

@@ -12,7 +12,9 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { ACTORS, KINDS, type ActorKind, type ComponentKind } from "@golive/spec";
+import type { ActorKind, ComponentKind } from "@golive/spec";
+import { useCatalog, useMessages } from "@/i18n/client";
+import { studioMessages } from "@/i18n/messages/studio";
 import type { Severity, Status } from "@golive/packs-sdk";
 import { ACTOR_ICON, KIND_ICON } from "../kind-icon";
 import { cx } from "../ui";
@@ -83,6 +85,8 @@ function IssueBadge({ issues }: { issues: Issue[] }) {
 }
 
 export const ComponentNodeView = memo(function ComponentNodeView({ data, selected }: NodeProps<ComponentNode>) {
+  const t = useMessages(studioMessages);
+  const { KINDS } = useCatalog();
   const Icon = KIND_ICON[data.kind];
   const tone = toneOf(worstIssue(data.issues));
   const techs = [data.tech, data.runtime].filter(Boolean).join(" · ");
@@ -103,7 +107,7 @@ export const ComponentNodeView = memo(function ComponentNodeView({ data, selecte
         </span>
         <span className="flex items-center gap-1">
           {data.exposure === "public" && (
-            <span className="rounded-[3px] border border-line px-1 font-mono text-[9px] uppercase leading-[14px] text-fg-2" title="Joignable depuis Internet">
+            <span className="rounded-[3px] border border-line px-1 font-mono text-[9px] uppercase leading-[14px] text-fg-2" title={t.reachable}>
               Internet
             </span>
           )}
@@ -111,7 +115,7 @@ export const ComponentNodeView = memo(function ComponentNodeView({ data, selecte
         </span>
       </div>
       <p className="truncate px-3 pt-1 text-[13px] font-medium leading-tight text-fg">{data.label}</p>
-      <p className={cx("truncate px-3 pb-2.5 pt-0.5 font-mono text-[10.5px]", techs ? "text-fg-3" : "italic text-fg-4")}>{techs || "technologie à préciser"}</p>
+      <p className={cx("truncate px-3 pb-2.5 pt-0.5 font-mono text-[10.5px]", techs ? "text-fg-3" : "italic text-fg-4")}>{techs || t.techUnknown}</p>
       <IssueBadge issues={data.issues} />
       <Handles />
     </div>
@@ -119,6 +123,7 @@ export const ComponentNodeView = memo(function ComponentNodeView({ data, selecte
 });
 
 export const ActorNodeView = memo(function ActorNodeView({ data, selected }: NodeProps<ActorNode>) {
+  const { ACTORS } = useCatalog();
   const Icon = ACTOR_ICON[data.kind];
   return (
     <div
@@ -140,6 +145,7 @@ export const ActorNodeView = memo(function ActorNodeView({ data, selected }: Nod
 
 export const LinkEdgeView = memo(function LinkEdgeView(props: EdgeProps<LinkEdge>) {
   const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, markerEnd } = props;
+  const t = useMessages(studioMessages);
   const [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature: 0.3 });
   const tone = toneOf(worstIssue(data?.issues ?? []));
   const stroke = tone === "red" ? "var(--red)" : tone === "amber" ? "var(--amber)" : selected ? "var(--fg)" : "var(--fg-4)";
@@ -159,7 +165,7 @@ export const LinkEdgeView = memo(function LinkEdgeView(props: EdgeProps<LinkEdge
           )}
           style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
         >
-          {data?.protocol === "internal" ? "interne" : data?.protocol}
+          {data?.protocol === "internal" ? t.internal : data?.protocol}
           {data?.label && <span className="font-sans text-fg-3">· {data.label}</span>}
         </div>
       </EdgeLabelRenderer>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { desc, eq, evaluateProject, logActivity, projects, sql, syncTasks, type ProjectRole } from "@golive/db";
 import { orgRole } from "@/server/access";
-import { forbidden, readJson, route } from "@/server/http";
+import { forbidden, L, readJson, route } from "@/server/http";
 import { parseSpec } from "@/server/projects";
 
 export const runtime = "nodejs";
@@ -34,7 +34,7 @@ export const POST = route<{ orgId: string }>(async ({ req, params, user, as }) =
   const spec = parseSpec(body.spec);
   return as(async (tx) => {
     const role = await orgRole(tx, params.orgId);
-    if (role === "guest") throw forbidden("Les invités ne peuvent pas créer de projet.");
+    if (role === "guest") throw forbidden(L("Guests cannot create projects.", "Les invités ne peuvent pas créer de projet."));
     const [p] = await tx.insert(projects).values({ orgId: params.orgId, name: spec.project.name, spec, createdBy: user.id }).returning();
     await syncTasks(tx, p!, evaluateProject(p!));
     await logActivity(tx, { orgId: params.orgId, projectId: p!.id, actorId: user.id, action: "project.created", target: spec.project.name });
