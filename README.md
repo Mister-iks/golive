@@ -85,7 +85,7 @@ Exit codes: `0` Go, `1` No-Go (or Conditional with `--fail-on conditional`), `2`
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: Mister-iks/golive@v1
+- uses: Mister-iks/golive@main      # pin a release tag once one is published
   with:
     url: https://preprod.example.com   # optional passive audit
     fail-on: no-go

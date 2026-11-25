@@ -44,4 +44,10 @@ jobs:
       - run: npm install --global npm@11
       - name: Publish
         working-directory: apps/cli
-        run: npm publish --access public
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "@pcybox/golive@$version" version >/dev/null 2>&1; then
+            echo "@pcybox/golive@$version is already on npm: nothing to publish."
+            exit 0
+          fi
+          npm publish --access public
