@@ -11,5 +11,5 @@
     "@golive/packs-sdk": "workspace:*",
     "@golive/spec": "workspace:*"
   },
-  "devDependencies": { "vitest": "^4.1.12" }
+  "devDependencies": { "vitest": "^5.1.1" }
 }
