@@ -2,7 +2,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import type { AxeViolation, CrawledPage, CrawlObservation } from "@golive/packs-sdk";
 import { assertUrlAllowed, USER_AGENT } from "@golive/probe";
+import { createServer, type AddressInfo } from "node:net";
 import { startGuardProxy } from "./guard-proxy";
+import { runLighthouse } from "./lighthouse";
 
 export { startGuardProxy } from "./guard-proxy";
 
@@ -18,6 +20,8 @@ export interface CrawlOptions {
   accessibility?: boolean;
   /** Browser to use: "chromium" (bundled), "chrome" or "msedge" (installed). */
   channel?: string;
+  /** Run Lighthouse on the first page once the crawl is done (default true). */
+  lighthouse?: boolean;
   onProgress?: (p: { pages: number; maxPages: number; url: string }) => void;
 }
 
@@ -69,7 +73,8 @@ export async function crawl(startUrl: string, options: CrawlOptions = {}): Promi
   const proxy = await startGuardProxy(options);
   let browser: Browser | undefined;
   try {
-    browser = await launch(options.channel, proxy.url);
+    const debugPort = options.lighthouse === false ? undefined : await freePort();
+    browser = await launch(options.channel, proxy.url, debugPort);
     obs.browser = `${browser.browserType().name()} ${browser.version()}`;
     const context = await browser.newContext({
       userAgent: `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${browser.version().split(".")[0]}.0.0.0 Safari/537.36 ${USER_AGENT}`,
@@ -130,8 +135,13 @@ export async function crawl(startUrl: string, options: CrawlOptions = {}): Promi
     }
     obs.truncated = queue.length > 0;
     obs.thirdParties = [...third].filter((h) => !firstParty(h.replace(/^www\./, ""))).sort();
-    obs.blockedRequests = proxy.blocked() + blockedSchemes;
     await context.close();
+    const first = obs.pages.find((p) => p.status !== null && p.status < 400);
+    if (debugPort && first) {
+      options.onProgress?.({ pages: obs.pages.length, maxPages, url: "lighthouse" });
+      obs.lighthouse = await runLighthouse(first.url, debugPort, USER_AGENT);
+    }
+    obs.blockedRequests = proxy.blocked() + blockedSchemes;
   } catch (e) {
     obs.pages.push(failedPage(startUrl, `Browser unavailable: ${(e as Error).message.split("\n")[0]}`));
   } finally {
@@ -143,12 +153,18 @@ export async function crawl(startUrl: string, options: CrawlOptions = {}): Promi
   return obs;
 }
 
-async function launch(channel: string | undefined, proxy: string): Promise<Browser> {
+async function launch(channel: string | undefined, proxy: string, debugPort?: number): Promise<Browser> {
   const base = {
     headless: true,
     proxy: { server: proxy },
     // Remove Chromium's implicit proxy bypass for localhost so every request is guarded.
-    args: ["--proxy-bypass-list=<-loopback>", "--disable-dev-shm-usage", "--no-first-run"],
+    // The debugging port, bound to loopback, lets Lighthouse drive this same browser.
+    args: [
+      "--proxy-bypass-list=<-loopback>",
+      "--disable-dev-shm-usage",
+      "--no-first-run",
+      ...(debugPort ? [`--remote-debugging-port=${debugPort}`, "--remote-debugging-address=127.0.0.1"] : []),
+    ],
   };
   const wanted = channel ?? process.env.GOLIVE_BROWSER_CHANNEL;
   if (wanted) return chromium.launch({ ...base, channel: wanted === "chromium" ? undefined : wanted });
@@ -299,4 +315,15 @@ export function normalize(u: URL): string | undefined {
 
 function failedPage(url: string, error: string): CrawledPage {
   return { url, status: null, error, h1: 0, noindex: false, timing: {}, bytes: 0, requests: 0, consoleErrors: 0 };
+}
+
+function freePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.once("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address() as AddressInfo;
+      srv.close(() => resolve(port));
+    });
+  });
 }

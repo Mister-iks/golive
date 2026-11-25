@@ -15,27 +15,13 @@ import {
   type Finding,
   type RuleContext,
 } from "@golive/packs-sdk";
-import { findLink, list, withWeb } from "./util";
+import { findLink, list, TRACKER_COOKIE, TRACKERS, withWeb } from "./util";
 
 const GDPR_URL = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0679";
 const gdpr = (art: string) => ({ label: `GDPR, Article ${art}`, url: GDPR_URL });
 const rgpd = (art: string) => `RGPD, article ${art}`;
 
 const targetsEU = (ctx: RuleContext) => ctx.spec.project.countries.some((c) => EU_EEA.has(c));
-
-const TRACKER_COOKIE = /^(_ga|_gid|_gcl|_fbp|_fbc|_hj|_clck|_clsk|_uet|_ttp|_pin_|IDE$|test_cookie$|MUID$|ABTasty)/;
-
-const TRACKERS: [RegExp, string][] = [
-  [/abtasty\.com/i, "AB Tasty"],
-  [/hs-scripts\.com|hs-analytics\.net/i, "HubSpot"],
-  [/googletagmanager\.com|google-analytics\.com/i, "Google Analytics / Tag Manager"],
-  [/connect\.facebook\.net/i, "Meta Pixel"],
-  [/static\.hotjar\.com/i, "Hotjar"],
-  [/clarity\.ms/i, "Microsoft Clarity"],
-  [/analytics\.tiktok\.com/i, "TikTok Pixel"],
-  [/snap\.licdn\.com/i, "LinkedIn Insight"],
-  [/doubleclick\.net/i, "Google Ads"],
-];
 
 const PRIVACY_LINK = [/confidentialit/i, /donn[ée]es personnelles/i, /vie priv[ée]e/i, /privacy/i, /rgpd/i, /gdpr/i, /personal data/i, /data protection/i];
 

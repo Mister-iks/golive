@@ -5,6 +5,7 @@ export const auditMessages = defineMessages({
     steps: {
       probe: "Passive analysis of the home page",
       crawl: "Browsing the site in a real browser",
+      lighthouse: "Lighthouse scores on the home page",
       evaluate: "Computing the verdict",
     } as Record<string, string>,
     layers: {
@@ -50,6 +51,7 @@ export const auditMessages = defineMessages({
     steps: {
       probe: "Analyse passive de la page d'accueil",
       crawl: "Parcours du site dans un vrai navigateur",
+      lighthouse: "Scores Lighthouse de la page d'accueil",
       evaluate: "Calcul du verdict",
     },
     layers: {

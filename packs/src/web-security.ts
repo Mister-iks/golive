@@ -10,6 +10,7 @@ import {
   tr,
   warn,
   type Finding,
+  notRun,
 } from "@golive/packs-sdk";
 import { list, pathOf, plural, withCrawl, withRepo, withWeb } from "./util";
 
@@ -318,6 +319,45 @@ export const webSecurity = definePack({
               `${plural(n, "ressource")} en http:// sur ${plural(pages.size, "page")}, par exemple ${first.url} (${pathOf(first.page)}).`,
             ),
             { observed: crawl.mixedContent.slice(0, 3).map((m) => m.url).join(" ") },
+          );
+        }),
+    }),
+
+    defineRule({
+      id: "sec.web.exposed-files",
+      title: "No sensitive file publicly readable",
+      why: "A readable .git folder, .env file or database dump hands over source code, passwords and personal data to anyone who asks.",
+      layer: 3,
+      category: "security",
+      severity: "blocker",
+      method: "auto",
+      source: { label: "OWASP Web Security Testing Guide, WSTG-CONF-04", url: "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/02-Configuration_and_Deployment_Management_Testing/04-Review_Old_Backup_and_Unreferenced_Files_for_Sensitive_Information" },
+      fix: "Remove these files from the published folder, block hidden files and backups in the web server configuration, then rotate every secret they contained.",
+      fr: {
+        title: "Aucun fichier sensible lisible publiquement",
+        why: "Un dossier .git, un fichier .env ou un export de base lisible livre le code source, les mots de passe et des données personnelles à quiconque le demande.",
+        fix: "Retirez ces fichiers du dossier publié, bloquez les fichiers cachés et les sauvegardes dans la configuration du serveur web, puis changez tous les secrets qu'ils contenaient.",
+        source: "OWASP Web Security Testing Guide, WSTG-CONF-04",
+      },
+      check: (ctx) =>
+        withWeb(ctx, (web) => {
+          if (!web.exposedFiles) return notRun(tr(ctx, "This audit did not look for exposed files. Run a new audit.", "Cet audit n'a pas recherché les fichiers exposés. Relancez un audit."));
+          if (!web.exposedFiles.length) return pass(tr(ctx, "None of the usual sensitive files (.git, .env, SQL dumps, backups) is readable.", "Aucun des fichiers sensibles habituels (.git, .env, exports SQL, sauvegardes) n'est lisible."));
+          const what: Record<string, [string, string]> = {
+            git: ["Git repository: source code and history", "Dépôt Git : code source et historique"],
+            vcs: ["version control folder", "dossier de gestion de versions"],
+            env: ["environment file: secrets and passwords", "fichier d'environnement : secrets et mots de passe"],
+            dump: ["database dump", "export de base de données"],
+            credentials: ["password file", "fichier de mots de passe"],
+            config: ["configuration backup with credentials", "sauvegarde de configuration avec identifiants"],
+            debug: ["server diagnostics page", "page de diagnostic du serveur"],
+            listing: ["folder listing file", "fichier d'index de dossier"],
+          };
+          return web.exposedFiles.map((f) =>
+            fail(tr(ctx, `${f.path} is publicly readable (${what[f.kind]![0]}).`, `${f.path} est lisible publiquement (${what[f.kind]![1]}).`), {
+              observed: `${f.status} ${f.path}`,
+              severity: f.kind === "debug" ? "major" : f.kind === "listing" ? "minor" : "blocker",
+            }),
           );
         }),
     }),

@@ -299,3 +299,88 @@ describe("languages", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("exposed files and declared versus observed", () => {
+  const web = (extra: object = {}) =>
+    ({
+      url: "https://shop.example.sn",
+      env: "prod",
+      finalUrl: "https://shop.example.sn/",
+      fetchedAt: "2026-11-25T10:00:00.000Z",
+      ok: true,
+      status: 200,
+      httpsRedirect: true,
+      headers: {},
+      setCookies: [],
+      wellKnown: { robotsTxt: true, securityTxt: true, sitemap: true },
+      timing: { ttfbMs: 100, totalMs: 200 },
+      bytes: 1000,
+      exposedFiles: [],
+      edge: null,
+      ...extra,
+    }) as never;
+  const spec = load("ecommerce");
+  const run = (s: Spec, w: object, id: string) => evaluate(s, { asOf: AS_OF, web: web(w) }).results.find((r) => r.ruleId === id)!;
+
+  it("blocks the Go when a .env file is readable", () => {
+    const r = run(spec, { exposedFiles: [{ path: "/.env", kind: "env", status: 200 }, { path: "/.DS_Store", kind: "listing", status: 200 }] }, "sec.web.exposed-files");
+    expect(r.status).toBe("fail");
+    expect(r.blocking).toBe(true);
+    expect(r.findings.map((f) => f.severity)).toEqual(["blocker", "minor"]);
+    expect(run(spec, {}, "sec.web.exposed-files").status).toBe("pass");
+  });
+
+  it("flags a declared CDN the traffic does not go through", () => {
+    const bare: Spec = { ...spec, components: spec.components.filter((c) => c.kind !== "cdn" && c.kind !== "waf") };
+    const withCdn: Spec = { ...bare, components: [...bare.components, { id: "edge", kind: "cdn", tech: "cloudflare" } as never] };
+    expect(run(withCdn, { edge: null }, "core.drift.cdn").status).toBe("fail");
+    expect(run(withCdn, { edge: undefined }, "core.drift.cdn").status).toBe("not-run");
+    expect(run(withCdn, { edge: "cloudflare" }, "core.drift.cdn").status).toBe("pass");
+    expect(run(bare, { edge: "cloudflare" }, "core.drift.cdn").status).toBe("warn");
+  });
+
+  it("compares the declared hosting country with the network registry", () => {
+    const front = new Set(["frontend", "load-balancer", "api"]);
+    const sn: Spec = { ...spec, components: spec.components.map((c) => (front.has(c.kind) ? { ...c, zone: undefined, hosting: { country: "SN" } } : c)) as never };
+    expect(run(sn, { network: { ip: "51.1.1.1", country: "FR", name: "OVH" } }, "core.drift.hosting-country").status).toBe("fail");
+    expect(run(sn, { network: { ip: "41.1.1.1", country: "SN", name: "SONATEL" } }, "core.drift.hosting-country").status).toBe("pass");
+    expect(run(sn, { network: { ip: "104.1.1.1", country: "US" }, edge: "cloudflare" }, "core.drift.hosting-country").status).toBe("na");
+  });
+
+  it("flags trackers missing from the architecture", () => {
+    const noAnalytics: Spec = { ...spec, features: spec.features.filter((f) => f !== "analytics"), components: spec.components.filter((c) => c.kind !== "analytics") };
+    const html = { lang: "fr", links: [], scripts: ["https://www.googletagmanager.com/gtag/js?id=G-1"], iframes: [], images: 0, imagesWithoutAlt: 0, forms: 0, passwordFieldsOverHttp: 0 };
+    expect(run(noAnalytics, { html }, "core.drift.undeclared-trackers").status).toBe("fail");
+    expect(run(noAnalytics, {}, "core.drift.undeclared-trackers").status).toBe("pass");
+  });
+});
+
+describe("lighthouse", () => {
+  const crawl = (lighthouse: object | undefined) => ({
+    browser: "chromium",
+    startedAt: "2026-11-25T10:00:00.000Z",
+    durationMs: 1000,
+    maxPages: 20,
+    truncated: false,
+    pages: [{ url: "https://s.sn/", status: 200, h1: 1, noindex: false, timing: {}, bytes: 0, requests: 1, consoleErrors: 0 }],
+    brokenLinks: [],
+    thirdParties: [],
+    cookiesBeforeConsent: [],
+    mixedContent: [],
+    blockedRequests: 0,
+    lighthouse,
+  });
+  const web = (lh: object | undefined) =>
+    ({ url: "https://s.sn", env: "prod", finalUrl: "https://s.sn/", fetchedAt: "2026-11-25T10:00:00.000Z", ok: true, status: 200, httpsRedirect: true, headers: {}, setCookies: [], wellKnown: { robotsTxt: true, securityTxt: true, sitemap: true }, timing: { ttfbMs: 1, totalMs: 1 }, bytes: 1, crawl: crawl(lh) }) as never;
+  const run = (lh: object | undefined) => evaluate(load("ecommerce"), { asOf: AS_OF, web: web(lh) }).results.find((r) => r.ruleId === "core.web.lighthouse")!;
+
+  it("grades the scores", () => {
+    const scores = (performance: number, seo = 95, bestPractices = 95) => ({ url: "https://s.sn/", durationMs: 1, scores: { performance, accessibility: 90, bestPractices, seo } });
+    expect(run(scores(95)).status).toBe("pass");
+    expect(run(scores(70)).status).toBe("warn");
+    const low = run(scores(30));
+    expect(low.status).toBe("fail");
+    expect(low.severity).toBe("major");
+    expect(run(undefined).status).toBe("not-run");
+  });
+});

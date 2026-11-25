@@ -68,7 +68,7 @@ npx @pcybox/golive check --repo . --lang fr
 
 ## Privacy
 
-The repository scan reads files locally and never executes project code. Secret values are never printed or stored, only their location. Only package names and versions are sent to osv.dev, and `--offline` disables that call.
+The repository scan reads files locally and never executes project code. Secret values are never printed or stored, only their location. Only package names and versions are sent to osv.dev. When a URL is audited, the site's IP address is looked up in the public RDAP registries (rdap.org) to know which network serves it. `--offline` disables both calls.
 
 ## License
 

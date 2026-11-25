@@ -11,8 +11,9 @@ import {
   warn,
   type Finding,
   type Lang,
+  notRun,
 } from "@golive/packs-sdk";
-import { daysBetween, isLocalFile, list, pathOf, plural, withCrawl, withRepo, withWeb } from "./util";
+import { daysBetween, detectTrackers, isLocalFile, list, pathOf, plural, withCrawl, withRepo, withWeb } from "./util";
 
 const ENDOFLIFE = { label: "endoflife.date", url: "https://endoflife.date" };
 
@@ -602,6 +603,136 @@ export const core = definePack({
     }),
 
     defineRule({
+      id: "core.drift.cdn",
+      title: "The declared CDN really serves the site",
+      why: "A CDN or firewall that the traffic does not go through protects nothing: the origin server stays exposed to attacks and load.",
+      layer: 3,
+      category: "architecture",
+      severity: "major",
+      method: "auto",
+      source: { label: "PcyBox GoLive, declared versus observed" },
+      fix: "Point the DNS of the site to the CDN, or correct the architecture if the CDN is not used.",
+      fr: {
+        title: "Le CDN déclaré sert réellement le site",
+        why: "Un CDN ou un pare-feu par lequel le trafic ne passe pas ne protège rien : le serveur d'origine reste exposé aux attaques et à la charge.",
+        fix: "Faites pointer le DNS du site vers le CDN, ou corrigez l'architecture si le CDN n'est pas utilisé.",
+        source: "PcyBox GoLive, déclaré et constaté",
+      },
+      check: (ctx) =>
+        withWeb(ctx, (web) => {
+          if (web.edge === undefined) return notRun(tr(ctx, "This audit did not identify the edge network. Run a new audit.", "Cet audit n'a pas identifié le réseau de bordure. Relancez un audit."));
+          const declared = ctx.graph.ofKind("cdn", "waf").map((c) => ({ c, tech: EDGE_TECH[parseTech(c.tech)?.name ?? ""] }));
+          const seen = web.edge ?? undefined;
+          if (!declared.length) {
+            return seen
+              ? warn(tr(ctx, `The site is served through ${seen}, which the architecture does not declare.`, `Le site est servi par ${seen}, que l'architecture ne déclare pas.`), { severity: "minor", observed: seen })
+              : na();
+          }
+          const known = declared.filter((d) => d.tech);
+          if (!known.length) return pass(tr(ctx, "CDN declared; its technology cannot be recognised from the headers.", "CDN déclaré ; sa technologie ne se reconnaît pas dans les en-têtes."));
+          if (seen && known.some((d) => d.tech === seen)) return pass(tr(ctx, `Traffic goes through ${seen}, as declared.`, `Le trafic passe bien par ${seen}, comme déclaré.`), { observed: seen });
+          const names = known.map((d) => d.tech).join(", ");
+          return fail(
+            seen
+              ? tr(ctx, `Declared: ${names}. Observed: ${seen}.`, `Déclaré : ${names}. Constaté : ${seen}.`)
+              : tr(ctx, `Declared: ${names}, but no sign of it in the responses: traffic reaches the origin directly.`, `Déclaré : ${names}, mais aucune trace dans les réponses : le trafic arrive directement sur l'origine.`),
+            { observed: seen ?? tr(ctx, "no CDN", "aucun CDN") },
+          );
+        }),
+    }),
+
+    defineRule({
+      id: "core.drift.hosting-country",
+      title: "The site answers from the declared country",
+      why: "Data residency obligations (public sector, health, banking) are judged on where the servers really are, not on what the documentation says.",
+      layer: 3,
+      category: "data",
+      severity: "major",
+      method: "auto",
+      source: { label: "RDAP, registration data of IP networks (RFC 9083)", url: "https://www.rfc-editor.org/rfc/rfc9083" },
+      fix: "Host the site in the declared country, or correct the declared hosting. A CDN in front of the site hides the origin: check the origin hosting with your provider.",
+      fr: {
+        title: "Le site répond depuis le pays déclaré",
+        why: "Les obligations de localisation des données (secteur public, santé, banque) s'apprécient sur l'emplacement réel des serveurs, pas sur la documentation.",
+        fix: "Hébergez le site dans le pays déclaré, ou corrigez l'hébergement déclaré. Un CDN placé devant masque l'origine : vérifiez l'hébergement d'origine auprès de votre prestataire.",
+        source: "RDAP, données d'enregistrement des réseaux IP (RFC 9083)",
+      },
+      check: (ctx) =>
+        withWeb(ctx, (web) => {
+          const net = web.network;
+          if (!net?.country) return notRun(tr(ctx, "The network registry of the site's address is not known for this audit.", "Le registre réseau de l'adresse du site n'est pas connu pour cet audit."));
+          const front = ctx.graph.ofKind("frontend", "load-balancer", "api");
+          const declared = [...new Set(front.map((c) => ctx.graph.country(c)).filter((c): c is string => !!c))];
+          if (!declared.length) return na(tr(ctx, "No hosting country declared for the components that serve the site.", "Aucun pays d'hébergement déclaré pour les composants qui servent le site."));
+          const where = `${net.ip}, ${tr(ctx, "network", "réseau")} ${net.name ?? "?"} (${net.country})`;
+          if (web.edge) return na(tr(ctx, `Served through ${web.edge}: ${where} belongs to the CDN, the origin is hidden.`, `Servi par ${web.edge} : ${where} appartient au CDN, l'origine est masquée.`));
+          if (declared.includes(net.country)) return pass(tr(ctx, `${where}, as declared.`, `${where}, comme déclaré.`), { observed: net.country });
+          return fail(
+            tr(ctx, `Declared hosting: ${declared.join(", ")}. The site answers from ${where}.`, `Hébergement déclaré : ${declared.join(", ")}. Le site répond depuis ${where}.`),
+            { observed: net.country },
+          );
+        }),
+    }),
+
+    defineRule({
+      id: "core.drift.undeclared-trackers",
+      title: "Every tracker on the site is declared",
+      why: "An analytics or advertising tool missing from the architecture escapes the consent, data transfer and processor checks.",
+      layer: 3,
+      category: "data",
+      severity: "major",
+      method: "auto",
+      source: { label: "PcyBox GoLive, declared versus observed" },
+      fix: "Add an analytics component for each tool to the architecture (with its hosting), or remove the tool from the site.",
+      fr: {
+        title: "Chaque traceur présent sur le site est déclaré",
+        why: "Un outil de mesure ou publicitaire absent de l'architecture échappe aux contrôles de consentement, de transfert de données et de sous-traitance.",
+        fix: "Ajoutez à l'architecture un composant de mesure d'audience pour chaque outil (avec son hébergement), ou retirez l'outil du site.",
+        source: "PcyBox GoLive, déclaré et constaté",
+      },
+      check: (ctx) =>
+        withWeb(ctx, (web) => {
+          const found = detectTrackers(web);
+          if (!found.length) return pass(tr(ctx, "No known tracker loaded by the site.", "Aucun traceur connu chargé par le site."));
+          const declared = ctx.graph.has("analytics") || ctx.spec.features.includes("analytics");
+          if (declared) return pass(tr(ctx, `Trackers detected and analytics declared: ${list(found)}.`, `Traceurs détectés et mesure d'audience déclarée : ${list(found)}.`), { observed: list(found) });
+          return fail(tr(ctx, `Detected on the site but not declared: ${list(found)}.`, `Détectés sur le site mais non déclarés : ${list(found)}.`), { observed: list(found) });
+        }),
+    }),
+
+    defineRule({
+      id: "core.web.lighthouse",
+      title: "Good Lighthouse scores on the home page",
+      why: "Lighthouse is the reference measure of performance, SEO and good practice used by search engines and agencies; a low score costs visitors and ranking.",
+      layer: 3,
+      category: "quality",
+      severity: "minor",
+      method: "auto",
+      source: { label: "Google Lighthouse, scoring", url: "https://developer.chrome.com/docs/lighthouse/performance/performance-scoring" },
+      fix: "Open the Lighthouse report of the home page (Chrome DevTools, Lighthouse tab) and apply its main opportunities, starting with the largest images and scripts.",
+      fr: {
+        title: "Bons scores Lighthouse sur la page d'accueil",
+        why: "Lighthouse est la mesure de référence de la performance, du SEO et des bonnes pratiques, utilisée par les moteurs et les agences ; un score faible coûte des visiteurs et du référencement.",
+        fix: "Ouvrez le rapport Lighthouse de la page d'accueil (Chrome DevTools, onglet Lighthouse) et appliquez ses principales recommandations, en commençant par les images et scripts les plus lourds.",
+        source: "Google Lighthouse, calcul des scores",
+      },
+      check: (ctx) =>
+        withCrawl(ctx, (crawl) => {
+          const lh = crawl.lighthouse;
+          if (!lh) return notRun(tr(ctx, "Lighthouse did not run during this audit.", "Lighthouse n'a pas tourné pendant cet audit."));
+          if (lh.error || !lh.scores) return warn(tr(ctx, `Lighthouse could not run: ${lh.error ?? lh.runtimeError}.`, `Lighthouse n'a pas pu tourner : ${lh.error ?? lh.runtimeError}.`), { severity: "info" });
+          const s = lh.scores;
+          const all = tr(ctx, `Performance ${s.performance ?? "?"}, accessibility ${s.accessibility ?? "?"}, good practice ${s.bestPractices ?? "?"}, SEO ${s.seo ?? "?"} (mobile)`, `Performance ${s.performance ?? "?"}, accessibilité ${s.accessibility ?? "?"}, bonnes pratiques ${s.bestPractices ?? "?"}, SEO ${s.seo ?? "?"} (mobile)`);
+          const out: Finding[] = [];
+          if (s.performance !== null && s.performance < 50) out.push(fail(tr(ctx, `Performance score ${s.performance}/100.`, `Score de performance ${s.performance}/100.`), { severity: "major", observed: all }));
+          else if (s.performance !== null && s.performance < 90) out.push(warn(tr(ctx, `Performance score ${s.performance}/100 (target: 90).`, `Score de performance ${s.performance}/100 (cible : 90).`), { observed: all }));
+          if (s.seo !== null && s.seo < 80) out.push(warn(tr(ctx, `SEO score ${s.seo}/100 (target: 80).`, `Score SEO ${s.seo}/100 (cible : 80).`), { observed: all }));
+          if (s.bestPractices !== null && s.bestPractices < 80) out.push(warn(tr(ctx, `Good practice score ${s.bestPractices}/100 (target: 80).`, `Score de bonnes pratiques ${s.bestPractices}/100 (cible : 80).`), { severity: "info", observed: all }));
+          return out.length ? out : pass(`${all}.`, { observed: all });
+        }),
+    }),
+
+    defineRule({
       id: "core.web.ttfb",
       title: "Reasonable server response time",
       why: "Beyond 800 ms before the first byte, the experience degrades sharply, especially on 3G.",
@@ -671,4 +802,18 @@ function median(values: number[]) {
 const sec = (ms: number, lang: Lang) => {
   const s = (ms / 1000).toFixed(1);
   return `${lang === "fr" ? s.replace(".", ",") : s} s`;
+};
+
+/** CDN and firewall techs of the catalogue, mapped to the edge names the probe recognises. */
+const EDGE_TECH: Record<string, string> = {
+  cloudflare: "cloudflare",
+  cloudfront: "cloudfront",
+  "aws-waf": "cloudfront",
+  fastly: "fastly",
+  akamai: "akamai",
+  bunny: "bunny",
+  "azure-front-door": "azure-front-door",
+  vercel: "vercel",
+  netlify: "netlify",
+  sucuri: "sucuri",
 };

@@ -6,6 +6,7 @@ export interface AuditSettings {
   allowPrivate: boolean;
   maxPages: number;
   budgetMs: number;
+  lighthouse: boolean;
 }
 
 /**
@@ -38,7 +39,12 @@ export async function runAudit(database: Database, auditId: string, settings: Au
         maxPages: settings.maxPages,
         budgetMs: settings.budgetMs,
         allowPrivate: settings.allowPrivate,
+        lighthouse: settings.lighthouse,
         onProgress: (p) => {
+          if (p.url === "lighthouse") {
+            void progress({ step: "lighthouse", pages: p.pages, maxPages: p.maxPages });
+            return;
+          }
           // At most one progress write per second.
           if (Date.now() - last < 1000) return;
           last = Date.now();

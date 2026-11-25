@@ -146,7 +146,7 @@ export function AuditPanel({ project, report }: { project: Project; report: Repo
 function RunningAudit({ audit }: { audit: Audit }) {
   const t = useMessages(auditMessages);
   const p = audit.progress;
-  const pct = audit.status === "queued" ? 4 : p.step === "probe" ? 10 : p.step === "crawl" && p.maxPages ? 12 + Math.round(((p.pages ?? 0) / p.maxPages) * 80) : p.step === "evaluate" ? 96 : 8;
+  const pct = audit.status === "queued" ? 4 : p.step === "probe" ? 10 : p.step === "crawl" && p.maxPages ? 12 + Math.round(((p.pages ?? 0) / p.maxPages) * 80) : p.step === "lighthouse" ? 92 : p.step === "evaluate" ? 96 : 8;
   return (
     <div className="border-t border-line px-5 py-2.5">
       <div className="flex items-center justify-between gap-4 text-xs">

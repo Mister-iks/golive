@@ -42,6 +42,12 @@ export interface WebObservation {
   };
   /** Well-known files probed with a single GET each (robots.txt, security.txt). */
   wellKnown: { robotsTxt: boolean; securityTxt: boolean; sitemap: boolean };
+  /** Sensitive files found publicly readable (.git, .env, SQL dumps…). Undefined when not checked. */
+  exposedFiles?: ExposedFile[];
+  /** IP address the site answered from, and the network it is registered to (RDAP). */
+  network?: { ip: string; country?: string; name?: string; registry?: string };
+  /** CDN or edge provider recognised from the response headers; null when none (undefined: not checked). */
+  edge?: string | null;
   timing: { ttfbMs: number; totalMs: number };
   bytes: number;
   /** Multi-page crawl in a real browser (full audit only). */
@@ -67,6 +73,20 @@ export interface CrawlObservation {
   mixedContent: { page: string; url: string }[];
   /** Requests refused by the robot (private addresses, unsupported schemes). */
   blockedRequests: number;
+  /** Lighthouse run on the first page (mobile profile). */
+  lighthouse?: LighthouseResult;
+}
+
+export interface LighthouseResult {
+  url: string;
+  version?: string;
+  formFactor?: string;
+  /** 0 to 100, null when Lighthouse could not score the category. */
+  scores?: { performance: number | null; accessibility: number | null; bestPractices: number | null; seo: number | null };
+  metrics?: { fcpMs?: number; lcpMs?: number; tbtMs?: number; cls?: number; speedIndexMs?: number };
+  runtimeError?: string;
+  error?: string;
+  durationMs: number;
 }
 
 export interface CrawledPage {
@@ -100,4 +120,10 @@ export interface ParsedCookie {
   secure: boolean;
   httpOnly: boolean;
   sameSite?: string;
+}
+
+export interface ExposedFile {
+  path: string;
+  kind: "git" | "vcs" | "env" | "dump" | "credentials" | "config" | "debug" | "listing";
+  status: number;
 }

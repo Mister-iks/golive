@@ -6,10 +6,19 @@ import { assertUrlAllowed, guardedLookup, type GuardOptions } from "./guard";
 
 export { assertUrlAllowed, BlockedAddressError, isBlockedIp, type GuardOptions } from "./guard";
 
-export const USER_AGENT = "PcyBoxGoLiveBot/0.1 (passive pre-production audit)";
+import { USER_AGENT } from "./ua";
+import { checkExposedFiles, detectEdge, lookupNetwork } from "./network";
+
+export { USER_AGENT } from "./ua";
+export { detectEdge, lookupNetwork } from "./network";
+export { SENSITIVE_PATHS } from "./exposure";
 
 export interface ProbeOptions extends GuardOptions {
   env?: "prod" | "preprod";
+  /** Look for sensitive files left public (.git, .env, SQL dumps…). Default true. */
+  exposedFiles?: boolean;
+  /** Ask the public RDAP registries who the answering IP belongs to. Default true. */
+  network?: boolean;
   timeoutMs?: number;
   maxBytes?: number;
   maxRedirects?: number;
@@ -65,10 +74,12 @@ export async function probe(rawUrl: string, options: ProbeOptions = {}): Promise
     const isHtml = /html/i.test(headers["content-type"] ?? "") || /^\s*<!doctype html|<html/i.test(text.slice(0, 500));
     const html = isHtml ? extractHtml(text, page.url) : undefined;
 
-    const [tls, httpsRedirect, wellKnown] = await Promise.all([
+    const [tls, httpsRedirect, wellKnown, exposedFiles, network] = await Promise.all([
       page.url.protocol === "https:" ? readTls(page.url, options, timeoutMs) : Promise.resolve(undefined),
       checkHttpRedirect(page.url, agent, Math.min(timeoutMs, 5_000)),
       checkWellKnown(page.url, agent, timeoutMs),
+      options.exposedFiles === false ? Promise.resolve(undefined) : checkExposedFiles(page.url.origin, agent, Math.min(timeoutMs, 6_000)),
+      options.network === false ? Promise.resolve(undefined) : lookupNetwork(page.url.hostname).catch(() => undefined),
     ]);
 
     return {
@@ -82,6 +93,9 @@ export async function probe(rawUrl: string, options: ProbeOptions = {}): Promise
       tls,
       html,
       wellKnown,
+      exposedFiles,
+      network,
+      edge: detectEdge(headers) ?? null,
       timing: { ttfbMs, totalMs: pageMs },
       bytes,
     };

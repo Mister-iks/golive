@@ -7,6 +7,7 @@ const settings = {
   allowPrivate: env.GOLIVE_ALLOW_PRIVATE === "1",
   maxPages: clamp(Number(env.GOLIVE_MAX_PAGES ?? 20), 1, 100),
   budgetMs: clamp(Number(env.GOLIVE_AUDIT_BUDGET_SECONDS ?? 150), 30, 600) * 1000,
+  lighthouse: env.GOLIVE_LIGHTHOUSE !== "0",
 };
 const concurrency = clamp(Number(env.GOLIVE_WORKER_CONCURRENCY ?? 2), 1, 8);
 

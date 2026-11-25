@@ -54,3 +54,27 @@ function decodeSafe(s: string) {
 }
 
 export const list = (items: string[]) => items.join(", ");
+
+/* ------------------------------------------------------------ trackers */
+
+export const TRACKER_COOKIE = /^(_ga|_gid|_gcl|_fbp|_fbc|_hj|_clck|_clsk|_uet|_ttp|_pin_|IDE$|test_cookie$|MUID$|ABTasty)/;
+
+export const TRACKERS: [RegExp, string][] = [
+  [/abtasty\.com/i, "AB Tasty"],
+  [/hs-scripts\.com|hs-analytics\.net/i, "HubSpot"],
+  [/googletagmanager\.com|google-analytics\.com/i, "Google Analytics / Tag Manager"],
+  [/connect\.facebook\.net/i, "Meta Pixel"],
+  [/static\.hotjar\.com/i, "Hotjar"],
+  [/clarity\.ms/i, "Microsoft Clarity"],
+  [/analytics\.tiktok\.com/i, "TikTok Pixel"],
+  [/snap\.licdn\.com/i, "LinkedIn Insight"],
+  [/doubleclick\.net/i, "Google Ads"],
+];
+
+/** Trackers seen on the site: scripts of the home page, hosts and cookies seen by the browser before any click. */
+export function detectTrackers(web: WebObservation): string[] {
+  const found = new Set<string>();
+  const hosts = [...(web.html?.scripts ?? []), ...(web.crawl?.thirdParties ?? [])];
+  for (const h of hosts) for (const [re, name] of TRACKERS) if (re.test(h)) found.add(name);
+  return [...found].sort();
+}

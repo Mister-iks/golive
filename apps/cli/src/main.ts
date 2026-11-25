@@ -56,7 +56,8 @@ program
     if (target) {
       const env = opts.env ?? (target === spec.targets.preprod ? "preprod" : "prod");
       if (opts.format === "pretty") process.stderr.write(c.dim(tr(`Passive audit of ${target}…\n`, `Audit passif de ${target}…\n`)));
-      web = await probe(target, { env, allowPrivate: opts.allowPrivate || process.env.GOLIVE_ALLOW_PRIVATE === "1" });
+      // --offline also skips the public registry lookup of the site address (RDAP).
+      web = await probe(target, { env, allowPrivate: opts.allowPrivate || process.env.GOLIVE_ALLOW_PRIVATE === "1", network: !opts.offline });
     }
     let repo;
     if (opts.repo) {

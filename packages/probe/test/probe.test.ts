@@ -49,3 +49,36 @@ describe("HTML extraction", () => {
     expect(out.passwordFieldsOverHttp).toBe(1);
   });
 });
+
+describe("exposed files and edge", () => {
+  it("reports only files whose content really is sensitive", async () => {
+    const { createServer } = await import("node:http");
+    const files: Record<string, [string, string]> = {
+      "/.git/HEAD": ["text/plain", "ref: refs/heads/main\n"],
+      "/backup.sql": ["application/sql", "-- MySQL dump 10.13\nCREATE TABLE users (id int);\n"],
+      "/": ["text/html", "<!doctype html><html><head><title>Home</title></head><body>ok</body></html>"],
+    };
+    const server = createServer((req, res) => {
+      const f = files[req.url ?? "/"];
+      // Soft 404: every unknown path answers 200 with the home page.
+      const [type, body] = f ?? files["/"]!;
+      res.writeHead(200, { "content-type": type }).end(body);
+    });
+    await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+    const port = (server.address() as { port: number }).port;
+    try {
+      const obs = await probe(`http://127.0.0.1:${port}/`, { allowPrivate: true, network: false });
+      expect(obs.ok).toBe(true);
+      expect(obs.exposedFiles?.map((f) => `${f.path}:${f.kind}`)).toEqual(["/.git/HEAD:git", "/backup.sql:dump"]);
+    } finally {
+      server.close();
+    }
+  });
+
+  it("recognises CDNs from response headers", async () => {
+    const { detectEdge } = await import("../src");
+    expect(detectEdge({ "cf-ray": "8a1-CDG", server: "cloudflare" })).toBe("cloudflare");
+    expect(detectEdge({ "x-amz-cf-id": "abc", via: "1.1 x.cloudfront.net (CloudFront)" })).toBe("cloudfront");
+    expect(detectEdge({ server: "nginx" })).toBeUndefined();
+  });
+});
