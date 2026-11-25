@@ -2,6 +2,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Command, Option } from "commander";
 import { COMMUNITY_PACKS, ENGINE_VERSION, evaluate, type Report } from "@golive/engine";
+
+declare const __CLI_VERSION__: string | undefined;
+/** Set at build time from package.json; "dev" when run from sources. */
+const CLI_VERSION = typeof __CLI_VERSION__ === "string" ? __CLI_VERSION__ : "dev";
 import { probe } from "@golive/probe";
 import { scanRepo } from "@golive/scanner";
 import { TEMPLATES, parseSpec, stringifySpec, validateSpec, type Spec } from "@golive/spec";
@@ -11,7 +15,7 @@ import { renderReport, renderIssues, c } from "./render";
 const program = new Command()
   .name("golive")
   .description(tr("Checks that a project is ready for production and returns a Go / No-Go verdict.", "Vérifie qu'un projet est prêt pour la production et rend un verdict Go / No-Go."))
-  .version(ENGINE_VERSION, "-v, --version", tr("output the version number", "affiche la version"))
+  .version(`${CLI_VERSION} (engine ${ENGINE_VERSION})`, "-v, --version", tr("output the version number", "affiche la version"))
   .helpOption("-h, --help", tr("display help for command", "affiche l'aide de la commande"))
   .helpCommand("help [command]", tr("display help for command", "affiche l'aide d'une commande"))
   // Read before commander runs (see i18n.ts); declared here so it is accepted and documented.

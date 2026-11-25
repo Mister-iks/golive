@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
 import { defineConfig } from "tsup";
+
+const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string };
 
 export default defineConfig({
   entry: { golive: "src/main.ts" },
@@ -6,6 +9,8 @@ export default defineConfig({
   platform: "node",
   target: "node22",
   bundle: true,
+  // The published package version, shown by golive --version.
+  define: { __CLI_VERSION__: JSON.stringify(pkg.version) },
   // Everything is bundled: the CLI ships as a single file with no runtime dependency.
   noExternal: [/.*/],
   banner: {
